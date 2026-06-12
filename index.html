@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SeaCage Ops</title>
+  <!-- Apple Home Screen Web App Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <style>
+    :root { --bg: #121212; --card: #1e1e1e; --text: #ffffff; --muted: #a0a0a0; --border: #2c2c2c; --primary: #3a86ff; --success: #00e676; --danger: #ff1744; }
+    body.light { --bg: #f8f9fa; --card: #ffffff; --text: #1a1d20; --muted: #6c757d; --border: #e9ecef; --primary: #0d6efd; --success: #2e7d32; --danger: #d32f2f; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding-bottom: 30px; }
+    header { height: 60px; display: flex; justify-content: space-between; align-items: center; padding: 0 20px; border-bottom: 1px solid var(--border); background: var(--card); }
+    .logo { font-size: 20px; font-weight: 800; }
+    .logo span { color: var(--primary); }
+    .theme-toggle { padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer; }
+    .tabs { display: flex; height: 48px; background: var(--card); border-bottom: 1px solid var(--border); }
+    .tab { flex: 1; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent; }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .content { padding: 15px; display: none; }
+    .content.active { display: block; }
+    .card { background: var(--card); border: 1px solid var(--border); padding: 16px; borderRadius: 12px; border-radius: 12px; margin-bottom: 15px; }
+    h3 { font-size: 16px; margin-bottom: 12px; font-weight: 700; }
+    .row { display: flex; gap: 10px; margin-bottom: 10px; }
+    .flex1 { flex: 1; }
+    label { display: block; font-size: 11px; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+    input, select { width: 100%; height: 42px; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 0 12px; border-radius: 8px; font-size: 14px; outline: none; }
+    .btn-group { display: flex; gap: 8px; margin-bottom: 10px; }
+    .choice-btn { flex: 1; height: 40px; border: 1px solid var(--border); background: var(--bg); color: var(--text); border-radius: 8px; cursor: pointer; font-weight: 600; }
+    .choice-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .choice-btn.success-active { background: var(--success); color: #fff; border-color: var(--success); }
+    .choice-btn.danger-active { background: var(--danger); color: #fff; border-color: var(--danger); }
+    .submit-btn { width: 100%; height: 46px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 5px; }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .cage { background: var(--card); border: 2.5px solid var(--success); aspect-ratio: 1; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; position: relative; }
+    .cage.maintenance { border-color: var(--danger); }
+    .cage span { font-size: 9px; color: var(--muted); font-weight: normal; margin-top: 2px; }
+    .record-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+    #lock-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; text-align: center; }
+    .loading-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); color: white; justify-content: center; align-items: center; font-weight: bold; z-index: 999; }
+  </style>
+</head>
+<body>
+
+  <div id="loading" class="loading-overlay">Hantar Data / Processing...</div>
+
+  <header>
+    <div class="logo">SeaCage<span>Ops</span></div>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙 Dark</button>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('worker')">Pekerja Field (BM)</div>
+    <div class="tab" onclick="switchTab('manager')">Manager Dashboard (ENG)</div>
+  </div>
+
+  <!-- FIELD WORKER VIEW -->
+  <div id="worker-view" class="content active">
+    <!-- Pemindahan Benih -->
+    <div class="card">
+      <h3>1. Pemindahan Benih</h3>
+      <div class="row">
+        <div class="flex1">
+          <label>Unit No. (1-24)</label>
+          <input type="number" id="tf-unit" placeholder="Contoh: 5">
+        </div>
+        <div class="flex1">
+          <label>Petak</label>
+          <div class="btn-group">
+            <button class="choice-btn active" id="tf-p1" onclick="setChoice('tf-petak', '1', 'tf-p1', 'tf-p2')">P1</button>
+            <button class="choice-btn" id="tf-p2" onclick="setChoice('tf-petak', '2', 'tf-p2', 'tf-p1')">P2</button>
+          </div>
+        </div>
+      </div>
+      <label>Julat Saiz (cm)</label>
+      <div class="btn-group">
+        <button class="choice-btn active" id="sz-small" onclick="setChoice('tf-size', '0.5 - 0.8', 'sz-small', 'sz-big')">0.5 - 0.8</button>
+        <button class="choice-btn" id="sz-big" onclick="setChoice('tf-size', '0.9 ke atas', 'sz-big', 'sz-small')">0.9 ke atas</button>
+      </div>
+      <label>Bilangan Benih (Qty)</label>
+      <input type="number" id="tf-qty" placeholder="Contoh: 1500" style="margin-bottom: 12px;">
+      <button class="submit-btn" onclick="submitPemindahan()">Simpan Rekod Pemindahan</button>
+    </div>
+
+    <!-- Log Kematian -->
+    <div class="card">
+      <h3>2. Log Kematian</h3>
+      <div class="row">
+        <div class="flex1">
+          <label>Unit Sangkar</label>
+          <input type="number" id="md-unit" placeholder="1-24">
+        </div>
+        <div class="flex1">
+          <label>Petak</label>
+          <div class="btn-group">
+            <button class="choice-btn active" id="md-p1" onclick="setChoice('md-petak', '1', 'md-p1', 'md-p2')">P1</button>
+            <button class="choice-btn" id="md-p2" onclick="setChoice('md-petak', '2', 'md-p2', 'md-p1')">P2</button>
+          </div>
+        </div>
+      </div>
+      <label>Jumlah Kematian</label>
+      <input type="number" id="md-qty" placeholder="Contoh: 12" style="margin-bottom: 12px;">
+      <button class="submit-btn" onclick="submitKematian()">Kemaskini Log Kematian</button>
+    </div>
+
+    <!-- Pemeriksaan Harian -->
+    <div class="card">
+      <h3>3. Pemeriksaan Harian</h3>
+      <div class="row">
+        <div class="flex1">
+          <label>Unit</label>
+          <input type="number" id="ch-unit" placeholder="1-24">
+        </div>
+        <div class="flex1">
+          <label>Petak</label>
+          <div class="btn-group">
+            <button class="choice-btn active" id="ch-p1" onclick="setChoice('ch-petak', '1', 'ch-p1', 'ch-p2')">P1</button>
+            <button class="choice-btn" id="ch-p2" onclick="setChoice('ch-petak', '2', 'ch-p2', 'ch-p1')">P2</button>
+          </div>
+        </div>
+      </div>
+      <label>Status Kondisi</label>
+      <div class="btn-group">
+        <button class="choice-btn success-active" id="st-normal" onclick="setStatus('Normal')">Tiada Masalah</button>
+        <button class="choice-btn" id="st-issue" onclick="setStatus('Rosak')">Ada Masalah</button>
+      </div>
+      <div id="issue-box" style="display: none; margin-top: 10px;">
+        <label>Jenis Kerosakan</label>
+        <select id="ch-type" onchange="toggleCustomIssue(this.value)">
+          <option value="Net Rosak">Net Rosak</option>
+          <option value="Rumpai Habis">Rumpai Habis</option>
+          <option value="Lain-lain">Lain-lain</option>
+        </select>
+        <input type="text" id="ch-custom" placeholder="Sila nyatakan masalah..." style="margin-top: 8px; display: none;">
+      </div>
+      <button class="submit-btn" style="margin-top: 12px;" onclick="submitPemeriksaan()">Hantar Laporan Harian</button>
+    </div>
+  </div>
+
+  <!-- MANAGER DASHBOARD VIEW -->
+  <div id="manager-view" class="content">
+    <div id="lock-screen">
+      <h3 style="margin-bottom: 8px;">🔐 Security Access Required</h3>
+      <p style="color: var(--muted); font-size: 13px; margin-bottom: 15px;">Enter password to unlock data logs.</p>
+      <input type="password" id="pin-input" placeholder="••••" style="text-align: center; font-size: 24px; max-width: 200px; margin-bottom: 15px;" maxlength="4">
+      <button class="submit-btn" style="max-width: 200px;" onclick="unlockManager()">Unlock</button>
+    </div>
+
+    <div id="dashboard-content" style="display: none;">
+      <div class="row" style="margin-bottom: 15px;">
+        <input type="text" id="search" placeholder="🔍 Search Unit (e.g., Unit 3)" oninput="renderGrid(this.value)">
+      </div>
+      
+      <h3 style="margin-bottom: 10px;">24 Sea Cages Structural Topology</h3>
+      <div class="grid" id="cage-grid"></div>
+
+      <div class="card" style="margin-top: 20px;">
+        <h3>📈 Post-Transfer Analytics (1-3 Days Losses %)</h3>
+        <div id="analytics-rows"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwFWgPQuf2NtGZinQTNdBL_03v5wtmM9x_iWM4VR6b9jexECt6p7jkWuqraj0xxy-ZJyw/exec";
+    
+    // Internal state form selections
+    let state = { tfPetak: "1", tfSize: "0.5 - 0.8", mdPetak: "1", chPetak: "1", chStatus: "Normal" };
+    let cloudData = { transfers: [], mortality: [], checks: [] };
+
+    function toggleTheme() {
+      document.body.classList.toggle('light');
+      const isLight = document.body.classList.contains('light');
+      document.querySelector('.theme-toggle').innerText = isLight ? "☀️ Light" : "🌙 Dark";
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+      if(tab === 'worker') {
+        document.querySelectorAll('.tab')[0].classList.add('active');
+        document.getElementById('worker-view').classList.add('active');
+      } else {
+        document.querySelectorAll('.tab')[1].classList.add('active');
+        document.getElementById('manager-view').classList.add('active');
+      }
+    }
+
+    function setChoice(key, val, activeId, inactiveId) {
+      state[key] = val;
+      document.getElementById(activeId).classList.add('active');
+      document.getElementById(inactiveId).classList.remove('active');
+    }
+
+    function setStatus(status) {
+      state.chStatus = status;
+      if(status === 'Normal') {
+        document.getElementById('st-normal').classList.add('success-active');
+        document.getElementById('st-issue').classList.remove('danger-active');
+        document.getElementById('issue-box').style.display = 'none';
+      } else {
+        document.getElementById('st-normal').classList.remove('success-active');
+        document.getElementById('st-issue').classList.add('danger-active');
+        document.getElementById('issue-box').style.display = 'block';
+      }
+    }
+
+    function toggleCustomIssue(val) {
+      document.getElementById('ch-custom').style.display = val === 'Lain-lain' ? 'block' : 'none';
+    }
+
+    async function postData(payload) {
+      document.getElementById('loading').style.display = 'flex';
+      try {
+        await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+        alert("Berjaya! Data telah disimpan ke Google Sheet.");
+      } catch(e) {
+        alert("Ralat sambungan rangkaian.");
+      } finally {
+        document.getElementById('loading').style.display = 'none';
+      }
+    }
+
+    function submitPemindahan() {
+      const unit = document.getElementById('tf-unit').value;
+      const qty = document.getElementById('tf-qty').value;
+      if(!unit || !qty) return alert("Sila isi semua maklumat.");
+      postData({ action: "pemindahan", date: new Date().toISOString().split('T')[0], unitId: unit, petak: state.tfPetak, size: state.tfSize, qty: qty });
+      document.getElementById('tf-unit').value = ''; document.getElementById('tf-qty').value = '';
+    }
+
+    function submitKematian() {
+      const unit = document.getElementById('md-unit').value;
+      const qty = document.getElementById('md-qty').value;
+      if(!unit || !qty) return alert("Sila isi semua maklumat.");
+      postData({ action: "kematian", date: new Date().toISOString().split('T')[0], unitId: unit, petak: state.mdPetak, qty: qty });
+      document.getElementById('md-unit').value = ''; document.getElementById('md-qty').value = '';
+    }
+
+    function submitPemeriksaan() {
+      const unit = document.getElementById('ch-unit').value;
+      if(!unit) return alert("Sila isi no unit.");
+      let type = document.getElementById('ch-type').value;
+      let note = type === 'Lain-lain' ? document.getElementById('ch-custom').value : type;
+      postData({ action: "pemeriksaan", date: new Date().toISOString().split('T')[0], unitId: unit, petak: state.chPetak, status: state.chStatus, issueType: type, note: state.chStatus === 'Normal' ? '' : note });
+      document.getElementById('ch-unit').value = ''; document.getElementById('ch-custom').value = '';
+    }
+
+    async function unlockManager() {
+      const pin = document.getElementById('pin-input').value;
+      if(pin === '3653') {
+        document.getElementById('lock-screen').style.display = 'none';
+        document.getElementById('dashboard-content').style.display = 'block';
+        document.getElementById('loading').style.display = 'flex';
+        try {
+          let res = await fetch(SCRIPT_URL);
+          cloudData = await res.json();
+          renderGrid('');
+          renderAnalytics();
+        } catch(e) {
+          alert("Gagal menarik data cloud.");
+        } finally {
+          document.getElementById('loading').style.display = 'none';
+        }
+      } else {
+        alert("Password salah!");
+      }
+    }
+
+    function renderGrid(query) {
+      const container = document.getElementById('cage-grid');
+      container.innerHTML = '';
+      
+      for(let i = 1; i <= 24; i++) {
+        let name = `Unit ${i}`;
+        if(query && !name.toLowerCase().includes(query.toLowerCase())) continue;
+        
+        // Compute Stock counts based on logs
+        let p1 = 500, p2 = 500, isMaintenance = false;
+        cloudData.transfers.filter(t => t.unitId == i).forEach(t => { if(t.petak == 1) p1 += t.qty; else p2 += t.qty; });
+        cloudData.mortality.filter(m => m.unitId == i).forEach(m => { if(m.petak == 1) p1 -= m.qty; else p2 -= m.qty; });
+        let broken = cloudData.checks.find(c => c.unitId == i && c.status === 'Rosak');
+        
+        let el = document.createElement('div');
+        el.className = `cage ${broken ? 'maintenance' : ''}`;
+        el.innerHTML = `<div>Unit ${i}</div><span>P1: ${p1}</span><span>P2: ${p2}</span>`;
+        container.appendChild(el);
+      }
+    }
+
+    function renderAnalytics() {
+      const container = document.getElementById('analytics-rows');
+      container.innerHTML = '';
+      if(cloudData.transfers.length === 0) container.innerHTML = '<p style="font-size:12px;color:var(--muted)">No batch transfers found.</p>';
+      
+      cloudData.transfers.forEach(rec => {
+        let pct = rec.qty > 0 ? ((rec.dead3Days / rec.qty) * 100).toFixed(1) : '0.0';
+        let color = parseFloat(pct) > 5.0 ? 'var(--danger)' : 'var(--success)';
+        container.innerHTML += `
+          <div class="record-row">
+            <div>
+              <div style="font-weight:bold; font-size:13px;">Unit ${rec.unitId} - Petak ${rec.petak}</div>
+              <div style="font-size:11px; color:var(--muted)">Transferred: ${rec.qty} spats (${rec.size} cm)</div>
+            </div>
+            <div style="text-align:right; font-size:13px; font-weight:bold; color:${color}">${pct}% Loss</div>
+          </div>`;
+      });
+    }
+  </script>
+</body>
+</html>
