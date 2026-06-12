@@ -37,6 +37,11 @@ export default function App() {
 
   const theme = isDarkMode ? THEMES.dark : THEMES.light;
 
+  // Custom Structural Map Matrix reflecting your exact farm layout layout coordinates
+  const leftColumnMatrix =  [9,  10, 11, 12, 13, 14, 15, 16];
+  const middleColumnMatrix = [1,  2,  3,  4,  17, 18, 19, 20];
+  const rightColumnMatrix =  [5,  6,  7,  8,  21, 22, 23, 24];
+
   const fetchAllData = async () => {
     if (SCRIPT_URL.includes("YOUR_GOOGLE")) return;
     setIsLoading(true);
@@ -90,6 +95,34 @@ export default function App() {
     return Math.floor(diffTime / (1000 * 60 * 60 * 24));
   };
 
+  const renderCageUnit = (uId) => {
+    if (!uId) return null;
+    if (searchQuery && !`Unit ${uId}`.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return <div className="h-28 opacity-10 bg-gray-500/5 rounded-xl border border-dashed"></div>;
+    }
+
+    const m1 = calculateMetrics(uId, '1');
+    const m2 = calculateMetrics(uId, '2');
+
+    return (
+      <div key={uId} className={`border-2 rounded-xl flex flex-col overflow-hidden h-28 relative ${theme.gridBg} ${theme.success}`}>
+        <div className="text-[9px] font-black text-center py-0.5 bg-black/10 border-b border-inherit">Unit {uId}</div>
+        
+        <div className="flex-1 flex flex-col justify-center items-center cursor-pointer hover:bg-black/5" onClick={() => setZoomedPetak({unitId: uId, petakNum: '1'})}>
+          <span className="text-[8px] uppercase tracking-wide opacity-60">Petak 1</span>
+          <span className="text-xs font-black">{m1.currentLive}</span>
+        </div>
+
+        <div className="border-t border-dashed border-inherit w-full"></div>
+
+        <div className="flex-1 flex flex-col justify-center items-center cursor-pointer hover:bg-black/5" onClick={() => setZoomedPetak({unitId: uId, petakNum: '2'})}>
+          <span className="text-[8px] uppercase tracking-wide opacity-60">Petak 2</span>
+          <span className="text-xs font-black">{m2.currentLive}</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className={`min-h-screen transition-colors duration-300 ${theme.bg} ${theme.text} pb-10`}>
       
@@ -140,51 +173,31 @@ export default function App() {
 
       <main className="max-w-xl mx-auto px-4">
         
-        {/* TAB 1: 3-COLUMNS WITH SECURITY HOUSE EMBEDDED TO THE RIGHT */}
+        {/* TAB 1: EXACT FARM SEQUENCE MULTI-ROW DESIGN REPLICA */}
         {activeTab === 'layout' && (
           <div className="space-y-4">
             <input type="text" placeholder="🔍 Tapis No Unit (Contoh: Unit 4)..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className={`h-11 rounded-xl px-4 border w-full text-xs outline-none ${theme.input}`} />
             
-            {/* Split layout into 4 columns layout: 3 for cages grid + 1 slim column on right for Security House alignment */}
             <div className="grid grid-cols-12 gap-3">
               
-              {/* Cage Grid Main System Area (Spans 9 out of 12 columns) */}
-              <div className="col-span-9 grid grid-cols-3 gap-3">
-                {[1, 2, 3].map(colNum => (
-                  <div key={colNum} className="space-y-3">
-                    {Array.from({ length: 8 }, (_, rowIndex) => {
-                      const uId = (colNum - 1) * 8 + (rowIndex + 1);
-                      if (searchQuery && !`Unit ${uId}`.toLowerCase().includes(searchQuery.toLowerCase())) return null;
-                      
-                      const m1 = calculateMetrics(uId, '1');
-                      const m2 = calculateMetrics(uId, '2');
-
-                      return (
-                        <div key={uId} className={`border-2 rounded-xl flex flex-col overflow-hidden h-28 relative ${theme.gridBg} ${theme.success}`}>
-                          <div className="text-[9px] font-black text-center py-0.5 bg-black/10 border-b border-inherit">Unit {uId}</div>
-                          
-                          <div className="flex-1 flex flex-col justify-center items-center cursor-pointer hover:bg-black/5" onClick={() => setZoomedPetak({unitId: uId, petakNum: '1'})}>
-                            <span className="text-[8px] uppercase tracking-wide opacity-60">Petak 1</span>
-                            <span className="text-xs font-black">{m1.currentLive}</span>
-                          </div>
-
-                          <div className="border-t border-dashed border-inherit w-full"></div>
-
-                          <div className="flex-1 flex flex-col justify-center items-center cursor-pointer hover:bg-black/5" onClick={() => setZoomedPetak({unitId: uId, petakNum: '2'})}>
-                            <span className="text-[8px] uppercase tracking-wide opacity-60">Petak 2</span>
-                            <span className="text-xs font-black">{m2.currentLive}</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
+              {/* Left Column (Units 9-16) */}
+              <div className="col-span-3 space-y-3">
+                {leftColumnMatrix.map(uId => renderCageUnit(uId))}
               </div>
 
-              {/* SECURITY HOUSE LANDMARK SIDEBAR (Spans remaining 3 out of 12 columns) */}
+              {/* Middle Column (Units 1-4, then 17-20) */}
+              <div className="col-span-3 space-y-3">
+                {middleColumnMatrix.map(uId => renderCageUnit(uId))}
+              </div>
+
+              {/* Right Column (Units 5-8, then 21-24) */}
+              <div className="col-span-3 space-y-3">
+                {rightColumnMatrix.map(uId => renderCageUnit(uId))}
+              </div>
+
+              {/* SECURITY HOUSE LANDMARK SIDEBAR - Fixed precisely next to Unit 5 and 6 */}
               <div className="col-span-3 flex flex-col justify-start relative">
-                {/* Dynamically push the security house down to sit between the 2nd and 3rd row layout lines */}
-                <div className="absolute top-[125px] left-0 right-0 border-2 border-amber-500/60 bg-amber-500/5 rounded-xl p-2 h-20 flex flex-col items-center justify-center text-center shadow-sm">
+                <div className="absolute top-[15px] left-0 right-0 border-2 border-amber-500/60 bg-amber-500/5 rounded-xl p-2 h-20 flex flex-col items-center justify-center text-center shadow-sm">
                   <span className="text-[16px] mb-0.5">🏠</span>
                   <span className="text-[8px] font-black uppercase tracking-wider text-amber-500">Security House</span>
                 </div>
@@ -201,7 +214,7 @@ export default function App() {
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
                 <label className="text-[10px] font-bold uppercase">Unit No (1-24)</label>
-                <input type="number" value={tfUnit} onChange={e => setTfUnit(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 text-xs outline-none ${theme.input}`} placeholder="Ex: 4" />
+                <input type="number" value={tfUnit} onChange={e => setTfUnit(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 text-xs outline-none ${theme.input}`} placeholder="Ex: 1" />
               </div>
               <div>
                 <label className="text-[10px] font-bold uppercase">Petak</label>
