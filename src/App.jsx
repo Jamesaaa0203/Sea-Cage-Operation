@@ -31,17 +31,20 @@ export default function App() {
   const [mdPetak, setMdPetak] = useState('1');
   const [mdQty, setMdQty] = useState('');
 
-  // Growth rates form module hooks
   const [grUnit, setGrUnit] = useState('');
   const [grPetak, setGrPetak] = useState('1');
   const [currentSingleSampleInput, setCurrentSingleSampleInput] = useState('');
   const [localSampleList, setLocalSampleList] = useState([]);
+
+  const [selectedOpsWeek, setSelectedOpsWeek] = useState(0);
 
   const theme = isDarkMode ? THEMES.dark : THEMES.light;
 
   const leftColumnMatrix =  [9,  10, 11, 12, 13, 14, 15, 16];
   const middleColumnMatrix = [1,  2,  3,  4,  17, 18, 19, 20];
   const rightColumnMatrix =  [5,  6,  7,  8,  21, 22, 23, 24];
+
+  const EPOCH_START = new Date("2026-06-08T00:00:00");
 
   const fetchAllData = async () => {
     setIsLoading(true);
@@ -113,9 +116,21 @@ export default function App() {
   };
 
   const getElapsedDays = () => {
-    const startDate = new Date("2026-06-08T00:00:00");
     const today = new Date();
-    return Math.floor(Math.abs(today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.floor(Math.abs(today.getTime() - EPOCH_START.getTime()) / (1000 * 60 * 60 * 24));
+  };
+
+  const getLiveOpsWeekNumber = () => {
+    return Math.floor(getElapsedDays() / 7) + 1;
+  };
+
+  const getWeekRangeString = (weekNum) => {
+    const targetStart = new Date(EPOCH_START.getTime());
+    targetStart.setDate(targetStart.getDate() + (weekNum - 1) * 7);
+    const targetEnd = new Date(targetStart.getTime());
+    targetEnd.setDate(targetEnd.getDate() + 6);
+    const options = { day: '2-digit', month: 'short' };
+    return `${targetStart.toLocaleDateString('en-US', options)} - ${targetEnd.toLocaleDateString('en-US', options)}`;
   };
 
   const addSampleToList = (e) => {
@@ -190,7 +205,7 @@ export default function App() {
 
       <header className={`h-16 flex justify-between items-center px-6 border-b backdrop-blur-md sticky top-0 z-40 ${theme.card}`}>
         <div className="text-xs font-black tracking-widest uppercase">SEACAGE<span className="text-blue-500">OPS MASTER</span></div>
-        <button onClick={() => setIsDarkMode(!isDarkMode)} className="text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full border border-gray-500/20">{isDarkMode ? '☀️ Light UI' : '🌙 Dark UI'}</button>
+        <button onClick={() => setIsDarkMode(!isDarkMode)} className="text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full border border-gray-500/20">{isDarkMode ? '☀️ Light' : '🌙 Dark'}</button>
       </header>
 
       <div className="flex max-w-xl mx-auto my-4 p-1 bg-black/10 dark:bg-white/5 rounded-xl border border-gray-500/10 overflow-x-auto">
@@ -198,7 +213,7 @@ export default function App() {
         <button onClick={() => setActiveTab('transfer')} className={`flex-1 min-w-[85px] py-2.5 rounded-lg text-[10px] font-bold tracking-wide transition-all ${activeTab === 'transfer' ? 'bg-blue-600 text-white shadow' : theme.muted}`}>Pindah Benih</button>
         <button onClick={() => setActiveTab('mortality')} className={`flex-1 min-w-[85px] py-2.5 rounded-lg text-[10px] font-bold tracking-wide transition-all ${activeTab === 'mortality' ? 'bg-blue-600 text-white shadow' : theme.muted}`}>Log Kematian</button>
         <button onClick={() => setActiveTab('growth')} className={`flex-1 min-w-[85px] py-2.5 rounded-lg text-[10px] font-bold tracking-wide transition-all ${activeTab === 'growth' ? 'bg-blue-600 text-white shadow' : theme.muted}`}>Pertumbuhan</button>
-        <button onClick={() => setActiveTab('manager')} className={`flex-1 min-w-[85px] py-2.5 rounded-lg text-[10px] font-bold tracking-wide transition-all ${activeTab === 'manager' ? 'bg-blue-600 text-white shadow' : theme.muted}`}>Manager View</button>
+        <button onClick={() => { setActiveTab('manager'); if(isManagerUnlocked && selectedOpsWeek === 0) setSelectedOpsWeek(getLiveOpsWeekNumber()); }} className={`flex-1 min-w-[85px] py-2.5 rounded-lg text-[10px] font-bold tracking-wide transition-all ${activeTab === 'manager' ? 'bg-blue-600 text-white shadow' : theme.muted}`}>Manager View</button>
       </div>
 
       <main className="max-w-xl mx-auto px-4">
@@ -292,7 +307,6 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 4: WORKER OPTIMIZED GROWTH TRACKING WITH DECIMAL PAD FOR CM OVERRIDES */}
         {activeTab === 'growth' && (
           <div className={`border p-6 rounded-3xl ${theme.card}`}>
             <div className="flex justify-between items-start mb-2">
@@ -325,19 +339,10 @@ export default function App() {
               </div>
             )}
 
-            {/* UPGRADED FORM ENFORCING NATIVE ACCESSIBILITY DECIMAL PAD KEYBOARDS FOR SMARTPHONES */}
             <form onSubmit={addSampleToList} className="flex gap-2 items-end">
               <div className="flex-1">
                 <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Ukur Saiz Sampel Berikutnya (cm)</label>
-                <input 
-                  type="number" 
-                  step="0.01" 
-                  inputMode="decimal" 
-                  placeholder="Contoh: 4.5" 
-                  value={currentSingleSampleInput} 
-                  onChange={e => setCurrentSingleSampleInput(e.target.value)} 
-                  className={`w-full h-11 border px-3 rounded-xl mt-1 text-xs outline-none ${theme.input}`} 
-                />
+                <input type="number" step="0.01" inputMode="decimal" placeholder="Contoh: 4.5" value={currentSingleSampleInput} onChange={e => setCurrentSingleSampleInput(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 text-xs outline-none ${theme.input}`} />
               </div>
               <button type="submit" className="h-11 px-5 bg-neutral-700 hover:bg-neutral-600 text-white font-bold rounded-xl text-xs whitespace-nowrap">Tambah</button>
             </form>
@@ -359,62 +364,122 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 5: COMPACT MACRO MANAGER SUMMARY VIEW */}
+        {/* TAB 5: DUAL TRANSLATED HIGH-END ENHANCED MANAGER HUB */}
         {activeTab === 'manager' && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {!isManagerUnlocked ? (
-              <div className={`border p-8 rounded-2xl text-center flex flex-col items-center ${theme.card}`}>
-                <h3 className="text-xs font-bold uppercase tracking-wider mb-2">Manager Access PIN</h3>
+              <div className={`border p-8 rounded-3xl text-center flex flex-col items-center ${theme.card}`}>
+                <h3 className="text-xs font-bold uppercase tracking-wider mb-2">Manager Access PIN / 관리자 인증</h3>
                 <input type="password" value={pinInput} onChange={e => setPinInput(e.target.value)} className={`h-11 text-center text-xl tracking-widest max-w-[150px] rounded-xl border outline-none ${theme.input}`} placeholder="••••" maxLength={4} />
-                <button onClick={() => { if(pinInput === '3653') { setIsManagerUnlocked(true); setPinInput(''); } else alert("PIN Incorrect!"); }} className="w-full max-w-[150px] h-11 bg-blue-600 text-white font-bold rounded-xl mt-4 text-xs">Unlock Hub</button>
+                <button onClick={() => { if(pinInput === '3653') { setIsManagerUnlocked(true); setPinInput(''); setSelectedOpsWeek(getLiveOpsWeekNumber()); } else alert("PIN Incorrect / 비밀번호 오류!"); }} className="w-full max-w-[150px] h-11 bg-blue-600 text-white font-bold rounded-xl mt-4 text-xs">Unlock / 인증</button>
               </div>
             ) : (() => {
               const global = getGlobalMetrics();
+              const maxActiveWeeks = getLiveOpsWeekNumber();
+
               return (
-                <div className="space-y-4">
-                  <div className={`border p-6 rounded-3xl grid grid-cols-2 gap-4 ${theme.card}`}>
-                    <div className="col-span-2 text-center border-b pb-3 border-gray-500/10">
-                      <span className="text-[10px] uppercase font-bold tracking-widest opacity-40 block mb-1">Global Farm Survival Rate</span>
-                      <span className="text-4xl font-black text-emerald-400 tracking-tight">{global.globalSurvival}%</span>
+                <div className="space-y-6">
+                  
+                  {/* CARD 1: GLOBAL KPIs / 글로벌 핵심 지표 */}
+                  <div className={`border p-6 rounded-3xl grid grid-cols-3 gap-4 text-center shadow-sm ${theme.card}`}>
+                    <div className="border-r border-gray-500/10 py-1">
+                      <span className="text-[9px] uppercase font-black tracking-wider opacity-40 block mb-0.5">Total Spats<br/>총 치패량</span>
+                      <span className="text-xl font-black tracking-tight">{global.totalInput}</span>
                     </div>
-                    <div className="border-r border-gray-500/10 pr-2 pt-1">
-                      <span className="text-[9px] uppercase tracking-wide opacity-40 block">Total Inputted Spats</span>
-                      <span className="text-xl font-black">{global.totalInput}</span>
+                    <div className="border-r border-gray-500/10 py-1">
+                      <span className="text-[9px] uppercase font-black tracking-wider opacity-40 block mb-0.5">Mortality<br/>총 폐사량</span>
+                      <span className="text-xl font-black text-rose-500 tracking-tight">{global.totalDead}</span>
                     </div>
-                    <div className="pl-4 pt-1">
-                      <span className="text-[9px] uppercase tracking-wide opacity-40 block">Total Dead Count</span>
-                      <span className="text-xl font-black text-red-500">{global.totalDead}</span>
+                    <div className="py-1">
+                      <span className="text-[9px] uppercase font-black tracking-wider opacity-40 block mb-0.5">Survival %<br/>생존율</span>
+                      <span className="text-xl font-black text-emerald-400 tracking-tight">{global.globalSurvival}%</span>
                     </div>
                   </div>
 
+                  {/* TIMELINE LOGGER BOX */}
                   <div className={`border p-4 rounded-2xl flex justify-between items-center ${theme.card}`}>
                     <div>
-                      <h3 className="text-xs font-black uppercase text-blue-500">Operation Operational Log</h3>
-                      <p className="text-[10px] opacity-40 mt-0.5">Start Date: June 8, 2026</p>
+                      <h3 className="text-xs font-black uppercase text-blue-500">Operation Status Log / 운영 상태 로그</h3>
+                      <p className="text-[10px] opacity-40 mt-0.5">Start Date / 시작일: June 8, 2026</p>
                     </div>
-                    <span className="px-3 py-1 bg-blue-600/10 text-blue-500 rounded-lg text-xs font-black">{getElapsedDays()} Days Elapsed</span>
+                    <span className="px-3 py-1 bg-blue-600/10 text-blue-500 rounded-lg text-xs font-black">{getElapsedDays()} Days Elapsed / 일 경과</span>
                   </div>
 
-                  <div className={`border p-4 rounded-2xl ${theme.card}`}>
-                    <h4 className="text-xs font-black uppercase text-gray-400 mb-3 tracking-wider">Post-Transfer Batch Metrics</h4>
-                    <div className="divide-y divide-gray-500/10 space-y-2">
-                      {cloudData.transfers?.map((t, idx) => {
-                        const lossPct = t.qty > 0 ? ((t.postDead / t.qty) * 100).toFixed(1) : "0.0";
+                  {/* CARD 2: TIMELINE SELECTOR / 주차별 아카이브 선택 */}
+                  <div className={`border p-5 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${theme.card}`}>
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-blue-500">Historical Archive Timeline / 과거 이력 타임라인</h4>
+                      <p className="text-[11px] opacity-40 mt-0.5">Select operational 7-day windows / 7일 단위 운영 주차를 선택하세요.</p>
+                    </div>
+                    <div className="w-full md:w-auto min-w-[220px]">
+                      <select 
+                        value={selectedOpsWeek} 
+                        onChange={e => setSelectedOpsWeek(parseInt(e.target.value))} 
+                        className={`w-full h-11 border px-3 rounded-xl text-xs font-bold outline-none bg-neutral-900 ${theme.input} ${theme.selectText}`}
+                      >
+                        {Array.from({ length: maxActiveWeeks }, (_, idx) => {
+                          const wNum = idx + 1;
+                          return (
+                            <option key={wNum} value={wNum} className={theme.selectText}>
+                              Week {wNum} ({getWeekRangeString(wNum)}) {wNum === maxActiveWeeks ? '— [ Live Week / 현재 주차 ]' : ''}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* CARD 3: WEEKLY REPORT CARD STACK / 주차별 배치 리포트 */}
+                  <div className="space-y-3">
+                    <h3 className="text-[10px] font-black uppercase tracking-widest opacity-40 pl-1">
+                      Batch Logs: Ops Week {selectedOpsWeek} / 배치 로그: 운영 {selectedOpsWeek}주차
+                    </h3>
+                    
+                    {(() => {
+                      const selectedWeeklyBatches = cloudData.transfers?.filter(t => {
+                        const batchDate = new Date(t.date);
+                        const diffTime = batchDate.getTime() - EPOCH_START.getTime();
+                        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                        const calculatedWeek = Math.floor(diffDays / 7) + 1;
+                        return calculatedWeek === selectedOpsWeek;
+                      });
+
+                      if (!selectedWeeklyBatches || selectedWeeklyBatches.length === 0) {
                         return (
-                          <div key={idx} className="flex justify-between items-center pt-2 text-xs">
-                            <div>
-                              <div className="font-bold">Unit {t.unitId} — Petak {t.petak}</div>
-                              <div className="text-[10px] opacity-40">{t.date} | Input: {t.qty} ({t.size})</div>
+                          <div className={`border p-8 rounded-2xl text-center text-xs opacity-40 font-medium ${theme.card}`}>
+                            Tiada rekod / No records registered in this operational week bracket.<br/>해당 운영 주차에 등록된 배치 이력이 없습니다.
+                          </div>
+                        );
+                      }
+
+                      return selectedWeeklyBatches.map((t, idx) => {
+                        const lossPct = t.qty > 0 ? ((t.postDead / t.qty) * 100).toFixed(1) : "0.0";
+                        const isHighLoss = parseFloat(lossPct) >= 5.0;
+
+                        return (
+                          <div key={idx} className={`border p-5 rounded-2xl flex justify-between items-center shadow-sm hover:border-blue-500/30 transition-all ${theme.card}`}>
+                            <div className="space-y-1">
+                              <div className="text-xs font-black tracking-tight flex items-center gap-2">
+                                Unit {t.unitId} — Petak {t.petak}
+                                <span className={`text-[8px] uppercase tracking-wider px-2 py-0.5 font-bold rounded-md border ${isHighLoss ? theme.danger : theme.success}`}>
+                                  {lossPct}% Loss / 손실률
+                                </span>
+                              </div>
+                              <div className="text-[11px] opacity-40">
+                                Date / 이송일: <b className="font-semibold">{t.date}</b> | Size / 규격: <b className="font-semibold">{t.size || "1.15 cm"}</b>
+                              </div>
                             </div>
-                            <div className="text-right">
-                              <div className="text-red-400 font-bold">{t.postDead} Dead</div>
-                              <div className={`text-[10px] font-black ${parseFloat(lossPct) > 5.0 ? 'text-red-500' : 'text-emerald-400'}`}>{lossPct}% Loss Rate</div>
+                            <div className="text-right space-y-0.5">
+                              <div className="text-[10px] uppercase font-bold opacity-30 tracking-wider">Post-Transfer Mortality / 이송 후 폐사</div>
+                              <div className="text-sm font-black">{t.postDead} <span className="text-[10px] font-bold opacity-40">dead / 미</span></div>
+                              <div className="text-[10px] font-bold opacity-50">from {t.qty} spats / 총 {t.qty} 미 중</div>
                             </div>
                           </div>
                         );
-                      })}
-                    </div>
+                      });
+                    })()}
                   </div>
+
                 </div>
               );
             })()}
