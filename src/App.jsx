@@ -37,6 +37,7 @@ export default function App() {
 
   const theme = isDarkMode ? THEMES.dark : THEMES.light;
 
+  // The custom matrix matching your physical sequence layout map
   const leftColumnMatrix =  [9,  10, 11, 12, 13, 14, 15, 16];
   const middleColumnMatrix = [1,  2,  3,  4,  17, 18, 19, 20];
   const rightColumnMatrix =  [5,  6,  7,  8,  21, 22, 23, 24];
@@ -108,6 +109,13 @@ export default function App() {
     return { totalInput, totalDead, globalLive, globalSurvival };
   };
 
+  const getElapsedDays = () => {
+    const startDate = new Date("2026-06-08T00:00:00");
+    const today = new Date();
+    const diffTime = Math.abs(today.getTime() - startDate.getTime());
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  };
+
   const renderCageUnit = (uId) => {
     const m1 = calculateMetrics(uId, '1');
     const m2 = calculateMetrics(uId, '2');
@@ -118,10 +126,11 @@ export default function App() {
     }
 
     return (
-      <div key={uId} onClick={() => setSelectedCageUnit(uId)} className={`border-2 rounded-xl h-24 flex flex-col items-center justify-center cursor-pointer transition-transform active:scale-95 ${theme.gridBg} ${theme.success}`}>
-        <div className="text-[10px] font-black opacity-40 absolute top-1">Unit {uId}</div>
-        <div className="text-sm font-black text-blue-500 mt-2">{combinedTotalLive}</div>
-        <div className="text-[8px] uppercase tracking-wider opacity-50 mt-0.5">Live Spats</div>
+      <div key={uId} onClick={() => setSelectedCageUnit(uId)} className={`border-2 rounded-xl h-24 flex flex-col items-center justify-center cursor-pointer transition-transform active:scale-95 relative ${theme.gridBg} ${theme.success}`}>
+        {/* Fixed Unit Label Placement Inside the box */}
+        <div className="absolute top-2 left-3 text-[11px] font-black tracking-tight opacity-70">Unit {uId}</div>
+        <div className="text-xl font-black text-blue-500 mt-2">{combinedTotalLive}</div>
+        <div className="text-[9px] uppercase tracking-wider opacity-50 mt-0.5">Live Spats</div>
       </div>
     );
   };
@@ -131,18 +140,17 @@ export default function App() {
       
       {isLoading && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center font-black text-xs text-white">
-          LOADING REALTIME OPERATION METRICS...
+          SYNCHRONIZING WITH GOOGLE SHEET CLOUD...
         </div>
       )}
 
-      {/* Step-In Popup Modal breakdown for individual components */}
       {selectedCageUnit && (() => {
         const p1 = calculateMetrics(selectedCageUnit, '1');
         const p2 = calculateMetrics(selectedCageUnit, '2');
         return (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4" onClick={() => setSelectedCageUnit(null)}>
             <div className={`w-full max-w-sm border p-6 rounded-3xl ${theme.card}`} onClick={e => e.stopPropagation()}>
-              <h4 className="font-black text-xs uppercase text-blue-500 mb-4 border-b pb-2">Unit {selectedCageUnit} Topology Breakdown</h4>
+              <h4 className="font-black text-sm uppercase text-blue-500 mb-4 border-b pb-2">Unit {selectedCageUnit} Details</h4>
               <div className="grid grid-cols-2 gap-4 text-xs">
                 <div className="space-y-1.5 bg-black/5 dark:bg-white/5 p-3 rounded-xl border border-dashed border-gray-500/20">
                   <span className="font-bold text-blue-400 block text-[9px] uppercase tracking-wide">Petak 1</span>
@@ -173,22 +181,33 @@ export default function App() {
         <button onClick={() => setActiveTab('layout')} className={`flex-1 py-2 rounded-lg text-[10px] font-bold ${activeTab === 'layout' ? 'bg-blue-600 text-white' : theme.muted}`}>Layout Map</button>
         <button onClick={() => setActiveTab('transfer')} className={`flex-1 py-2 rounded-lg text-[10px] font-bold ${activeTab === 'transfer' ? 'bg-blue-600 text-white' : theme.muted}`}>Pindah Benih</button>
         <button onClick={() => setActiveTab('mortality')} className={`flex-1 py-2 rounded-lg text-[10px] font-bold ${activeTab === 'mortality' ? 'bg-blue-600 text-white' : theme.muted}`}>Log Kematian</button>
-        <button onClick={() => setActiveTab('manager')} className={`flex-1 py-2 rounded-lg text-[10px] font-bold ${activeTab === 'manager' ? 'bg-blue-600 text-white' : theme.muted}`}>Manager View</button>
+        <button onClick={() => { setActiveTab('manager'); fetchAllData(); }} className={`flex-1 py-2 rounded-lg text-[10px] font-bold ${activeTab === 'manager' ? 'bg-blue-600 text-white' : theme.muted}`}>Manager View</button>
       </div>
 
       <main className="max-w-xl mx-auto px-4">
         
         {activeTab === 'layout' && (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <input type="text" placeholder="🔍 Tapis No Unit (Contoh: Unit 4)..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className={`h-11 rounded-xl px-4 border w-full text-xs outline-none ${theme.input}`} />
+            
             <div className="grid grid-cols-12 gap-3">
               <div className="col-span-9 grid grid-cols-3 gap-3">
-                <div className="space-y-3">{leftColumnMatrix.map(uId => renderCageUnit(uId))}</div>
-                <div className="space-y-3">{middleColumnMatrix.map(uId => renderCageUnit(uId))}</div>
-                <div className="space-y-3">{rightColumnMatrix.map(uId => renderCageUnit(uId))}</div>
+                {/* Column Headers built inline within the matrix containment structure */}
+                <div className="space-y-3">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-center py-1 opacity-40">Left Row</div>
+                  {leftColumnMatrix.map(uId => renderCageUnit(uId))}
+                </div>
+                <div className="space-y-3">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-center py-1 opacity-40">Middle Row</div>
+                  {middleColumnMatrix.map(uId => renderCageUnit(uId))}
+                </div>
+                <div className="space-y-3">
+                  <div className="text-[10px] font-black uppercase tracking-wider text-center py-1 opacity-40">Right Row</div>
+                  {rightColumnMatrix.map(uId => renderCageUnit(uId))}
+                </div>
               </div>
-              <div className="col-span-3 relative">
-                <div className="absolute top-[15px] left-0 right-0 border border-amber-500 bg-amber-500/5 rounded-xl p-2 text-center text-[8px] font-bold text-amber-500 uppercase">🏠 Security House</div>
+              <div className="col-span-3 relative pt-7">
+                <div className="border border-amber-500 bg-amber-500/5 rounded-xl p-3 text-center text-[9px] font-black text-amber-500 uppercase tracking-wide">🏠 Security House</div>
               </div>
             </div>
           </div>
@@ -197,7 +216,7 @@ export default function App() {
         {activeTab === 'transfer' && (
           <div className={`border p-5 rounded-2xl ${theme.card}`}>
             <h3 className="text-xs font-bold uppercase tracking-wider mb-2 text-blue-500">Pindah Benih Baru</h3>
-            <label className="text-[10px] font-bold text-gray-400">Pilih Tarikh Pemindahan</label>
+            <label className="text-[10px] font-bold text-gray-400">Tarikh Pemindahan</label>
             <input type="date" value={tfDate} onChange={e => setTfDate(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 mb-2 text-xs ${theme.input}`} />
             <input type="number" placeholder="Unit Target (1-24)" value={tfUnit} onChange={e => setTfUnit(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 outline-none ${theme.input}`} />
             <div className="flex gap-2 mt-2">
@@ -213,7 +232,7 @@ export default function App() {
           <div className={`border p-5 rounded-2xl ${theme.card}`}>
             <h3 className="text-xs font-black uppercase mb-4 text-red-500">Kemasukan Rekod Kematian</h3>
             <div className="flex gap-2 mb-4 p-1 bg-black/10 dark:bg-white/5 rounded-xl border">
-              <button onClick={() => setMortalityType('harian')} className={`flex-1 py-2 text-[10px] font-bold rounded-lg ${mortalityType === 'harian' ? 'bg-red-600 text-white' : ''}`}>Kematian Routine Harian</button>
+              <button onClick={() => setMortalityType('harian')} className={`flex-1 py-2 text-[10px] font-bold rounded-lg ${mortalityType === 'harian' ? 'bg-red-600 text-white' : ''}`}>Kematian Routine</button>
               <button onClick={() => setMortalityType('pasca')} className={`flex-1 py-2 text-[10px] font-bold rounded-lg ${mortalityType === 'pasca' ? 'bg-red-600 text-white' : ''}`}>Mortaliti Pasca-Transfer</button>
             </div>
 
@@ -260,32 +279,41 @@ export default function App() {
               const global = getGlobalMetrics();
               return (
                 <div className="space-y-4">
-                  {/* GLOBAL COLLAPSED MANAGER METRICS CARDS */}
-                  <div className={`border p-5 rounded-2xl grid grid-cols-2 gap-4 ${theme.card}`}>
-                    <div className="col-span-2 text-center border-b pb-2">
-                      <span className="text-[10px] uppercase font-bold tracking-wider opacity-50 block">Global Farm Survival Rate</span>
-                      <span className="text-3xl font-black text-emerald-400">{global.globalSurvival}%</span>
+                  {/* Executive Macro Corporate Overview Metrics Panel Grid */}
+                  <div className={`border p-6 rounded-2xl grid grid-cols-2 gap-4 ${theme.card}`}>
+                    <div className="col-span-2 text-center border-b pb-3 border-neutral-800">
+                      <span className="text-[10px] uppercase font-bold tracking-wider opacity-40 block mb-1">Global Farm Survival Rate</span>
+                      <span className="text-4xl font-black text-emerald-400">{global.globalSurvival}%</span>
                     </div>
-                    <div className="border-r border-neutral-800 pr-2">
-                      <span className="text-[9px] uppercase tracking-wide opacity-50 block">Total Inputted Spats</span>
-                      <span className="text-lg font-bold">{global.totalInput}</span>
+                    <div className="border-r border-neutral-800 pr-2 pt-2">
+                      <span className="text-[9px] uppercase tracking-wide opacity-40 block">Total Inputted Spats</span>
+                      <span className="text-xl font-black">{global.totalInput}</span>
                     </div>
-                    <div className="pl-2">
-                      <span className="text-[9px] uppercase tracking-wide opacity-50 block">Total Dead Count</span>
-                      <span className="text-lg font-bold text-red-500">{global.totalDead}</span>
+                    <div className="pl-4 pt-2">
+                      <span className="text-[9px] uppercase tracking-wide opacity-40 block">Total Dead Count</span>
+                      <span className="text-xl font-black text-red-500">{global.totalDead}</span>
                     </div>
                   </div>
 
-                  {/* INITIAL SETUP DESIGN PLATFORM */}
+                  {/* Operational Timeline Status Log */}
+                  <div className={`border p-4 rounded-xl flex justify-between items-center ${theme.card}`}>
+                    <div>
+                      <h3 className="text-xs font-black uppercase text-blue-500">Operation Status Log</h3>
+                      <p className="text-[10px] text-gray-400 mt-0.5">Start Date: June 8, 2026</p>
+                    </div>
+                    <span className="px-3 py-1 bg-blue-600/10 text-blue-500 rounded-lg text-xs font-black">{getElapsedDays()} Days Elapsed</span>
+                  </div>
+
+                  {/* Initial Baseline Layout Configurations Setup */}
                   <div className={`border p-4 rounded-xl ${theme.card}`}>
-                    <h4 className="text-xs font-black uppercase text-blue-500 mb-3">🛠️ Initial Inventory Setup</h4>
+                    <h4 className="text-xs font-black uppercase text-blue-500 mb-3">🛠️ Initial Layout Inventory Setup</h4>
                     <div className="grid grid-cols-3 gap-2 mb-3">
                       <input type="number" placeholder="Unit" value={setupUnit} onChange={e => setSetupUnit(e.target.value)} className={`h-10 text-xs px-2 rounded-lg border outline-none ${theme.input}`} />
                       <select value={setupPetak} onChange={e => setSetupPetak(e.target.value)} className={`h-10 text-xs px-2 rounded-lg border text-white bg-neutral-900 outline-none ${theme.input}`}>
                         <option value="1">Petak 1</option>
                         <option value="2">Petak 2</option>
                       </select>
-                      <input type="number" placeholder="Qty Baseline" value={setupQty} onChange={e => setSetupQty(e.target.value)} className={`h-10 text-xs px-2 rounded-lg border outline-none ${theme.input}`} />
+                      <input type="number" placeholder="Baseline Qty" value={setupQty} onChange={e => setSetupQty(e.target.value)} className={`h-10 text-xs px-2 rounded-lg border outline-none ${theme.input}`} />
                     </div>
                     <button onClick={() => {
                       if(!setupUnit || !setupQty) return alert("Sila isi.");
@@ -294,7 +322,7 @@ export default function App() {
                     }} className="w-full h-10 bg-blue-600 text-white font-bold text-xs rounded-lg">Save Configuration</button>
                   </div>
 
-                  {/* REAL-TIME INDIVIDUAL BATCH MORTALITY PERCENTAGE SUMMARY BOXES */}
+                  {/* Granular Post-Transfer Batch Summary Metric Rows */}
                   <div className={`border p-4 rounded-xl ${theme.card}`}>
                     <h4 className="text-xs font-black uppercase text-gray-400 mb-3">Post-Transfer Batch Metrics</h4>
                     <div className="divide-y divide-neutral-800 space-y-2">
@@ -315,6 +343,7 @@ export default function App() {
                       })}
                     </div>
                   </div>
+
                 </div>
               );
             })()}
