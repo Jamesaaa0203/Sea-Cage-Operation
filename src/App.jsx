@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwgya4bSRB9nIEeTBkVR_mdYieh1FX4wfGjewjNf770Vrur_WI9QJGUmD-B5luoZJkYKg/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyE_bSUMWORC6N4SWe1BeAwTq8VokMRxeB74NQNuhmmHpsjCDHhGNQna4JEZXGzABStdg/exec";
 
 const THEMES = {
   dark: { bg: 'bg-[#0F1115]', card: 'bg-[#161920] border-[#222630]', text: 'text-white', muted: 'text-gray-400', input: 'bg-[#1D212C] border-[#2E3545] text-white focus:border-blue-500', selectText: 'text-white', accent: '#3A86FF', success: 'border-emerald-500 bg-emerald-500/5', gridBg: 'bg-[#161920]' },
@@ -34,7 +34,8 @@ export default function App() {
   // Growth rates form module hooks
   const [grUnit, setGrUnit] = useState('');
   const [grPetak, setGrPetak] = useState('1');
-  const [grLength, setGrLength] = useState('');
+  const [currentSingleSampleInput, setCurrentSingleSampleInput] = useState('');
+  const [localSampleList, setLocalSampleList] = useState([]);
 
   const theme = isDarkMode ? THEMES.dark : THEMES.light;
 
@@ -105,16 +106,31 @@ export default function App() {
 
   const getAverageGrowth = (unitId, petakNum) => {
     const logs = cloudData.growth?.filter(g => parseInt(g.unitId) === parseInt(unitId) && String(g.petak) === String(petakNum));
-    if(!logs || logs.length === 0) return "No records";
+    if(!logs || logs.length === 0) return "Tiada rekod";
     let sum = 0;
     logs.forEach(l => sum += parseFloat(l.length));
-    return (sum / logs.length).toFixed(1) + " mm";
+    return (sum / logs.length).toFixed(1) + " cm";
   };
 
   const getElapsedDays = () => {
     const startDate = new Date("2026-06-08T00:00:00");
     const today = new Date();
     return Math.floor(Math.abs(today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  };
+
+  const addSampleToList = (e) => {
+    e.preventDefault();
+    const val = parseFloat(currentSingleSampleInput);
+    if (!val || val <= 0) return;
+    setLocalSampleList([...localSampleList, val]);
+    setCurrentSingleSampleInput('');
+  };
+
+  const getLocalListAverage = () => {
+    if (localSampleList.length === 0) return "0.0";
+    let sum = 0;
+    localSampleList.forEach(v => sum += v);
+    return (sum / localSampleList.length).toFixed(2);
   };
 
   const renderCageUnit = (uId) => {
@@ -139,7 +155,7 @@ export default function App() {
     <div className={`min-h-screen ${theme.bg} ${theme.text} pb-10 font-sans antialiased`}>
       
       {isLoading && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center font-bold text-xs tracking-widest text-white">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center font-bold text-xs tracking-widest text-white">
           SYNCHRONIZING SECURE CLOUD STORAGE DATA...
         </div>
       )}
@@ -157,14 +173,14 @@ export default function App() {
                   <div>Inflow Spats: <b className="float-right">{p1.totalEntered}</b></div>
                   <div>Mortality: <b className="float-right text-red-500">{p1.deadCount}</b></div>
                   <div className="text-emerald-400 font-extrabold border-t pt-1 mt-1">Live Balance: <span className="float-right">{p1.currentLive}</span></div>
-                  <div className="text-[10px] opacity-60">Avg Length: <b className="float-right">{getAverageGrowth(selectedCageUnit, '1')}</b></div>
+                  <div className="text-[10px] opacity-60">Avg Length: <b className="float-right text-blue-400">{getAverageGrowth(selectedCageUnit, '1')}</b></div>
                 </div>
                 <div className="space-y-2 bg-black/10 dark:bg-white/5 p-3 rounded-2xl border border-gray-500/10">
                   <span className="font-extrabold text-blue-400 block text-[9px] uppercase tracking-wider">Petak 2</span>
                   <div>Inflow Spats: <b className="float-right">{p2.totalEntered}</b></div>
                   <div>Mortality: <b className="float-right text-red-500">{p2.deadCount}</b></div>
                   <div className="text-emerald-400 font-extrabold border-t pt-1 mt-1">Live Balance: <span className="float-right">{p2.currentLive}</span></div>
-                  <div className="text-[10px] opacity-60">Avg Length: <b className="float-right">{getAverageGrowth(selectedCageUnit, '2')}</b></div>
+                  <div className="text-[10px] opacity-60">Avg Length: <b className="float-right text-blue-400">{getAverageGrowth(selectedCageUnit, '2')}</b></div>
                 </div>
               </div>
             </div>
@@ -177,7 +193,6 @@ export default function App() {
         <button onClick={() => setIsDarkMode(!isDarkMode)} className="text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full border border-gray-500/20">{isDarkMode ? '☀️ Light UI' : '🌙 Dark UI'}</button>
       </header>
 
-      {/* Modern Horizontal Navigation Tab Controls */}
       <div className="flex max-w-xl mx-auto my-4 p-1 bg-black/10 dark:bg-white/5 rounded-xl border border-gray-500/10 overflow-x-auto">
         <button onClick={() => setActiveTab('layout')} className={`flex-1 min-w-[85px] py-2.5 rounded-lg text-[10px] font-bold tracking-wide transition-all ${activeTab === 'layout' ? 'bg-blue-600 text-white shadow' : theme.muted}`}>Layout Map</button>
         <button onClick={() => setActiveTab('transfer')} className={`flex-1 min-w-[85px] py-2.5 rounded-lg text-[10px] font-bold tracking-wide transition-all ${activeTab === 'transfer' ? 'bg-blue-600 text-white shadow' : theme.muted}`}>Pindah Benih</button>
@@ -188,7 +203,6 @@ export default function App() {
 
       <main className="max-w-xl mx-auto px-4">
         
-        {/* TAB 1: 3-ROW MINIMAL TOPOLOGY MATRIX GRAPH */}
         {activeTab === 'layout' && (
           <div className="space-y-4">
             <input type="text" placeholder="🔍 Tapis No Unit (Contoh: Unit 4)..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className={`h-11 rounded-xl px-4 border w-full text-xs outline-none transition-all ${theme.input}`} />
@@ -206,17 +220,16 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 2: FIELD WORKER - PEMINDAHAN BENIH */}
         {activeTab === 'transfer' && (
           <div className={`border p-6 rounded-3xl ${theme.card}`}>
             <h3 className="text-xs font-black uppercase tracking-wider mb-4 text-blue-500">Pindah Benih Baru</h3>
             <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Tarikh Pemindahan</label>
-            <input type="date" value={tfDate} onChange={e => setTfDate(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 mb-3 text-xs outline-none ${theme.input}`} />
+            <input type="date" value={tfDate} onChange={e => setTfDate(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 mb-3 text-xs ${theme.input}`} />
             
             <div className="grid grid-cols-2 gap-4 mb-3">
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Unit Target (1-24)</label>
-                <input type="number" placeholder="Ex: 1" value={tfUnit} onChange={e => setTfUnit(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 text-xs outline-none ${theme.input}`} />
+                <input type="number" inputMode="numeric" placeholder="Ex: 1" value={tfUnit} onChange={e => setTfUnit(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 text-xs outline-none ${theme.input}`} />
               </div>
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Pilih Petak</label>
@@ -236,12 +249,11 @@ export default function App() {
             </div>
 
             <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Kuantiti Benih (Spat Qty)</label>
-            <input type="number" placeholder="Contoh: 3000" value={tfQty} onChange={e => setTfQty(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 outline-none ${theme.input}`} />
-            <button onClick={() => handlePost({action:'pemindahan', batchId: 'B-' + Date.now(), date: tfDate, unitId: parseInt(tfUnit), petak: tfPetak, size: tfSize, qty: parseInt(tfQty)})} className="w-full h-12 bg-blue-600 text-white font-extrabold rounded-xl text-xs mt-5 shadow-lg transition-transform active:scale-98">Hantar Rekod Pemindahan</button>
+            <input type="number" inputMode="numeric" placeholder="Contoh: 3000" value={tfQty} onChange={e => setTfQty(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 outline-none ${theme.input}`} />
+            <button onClick={() => handlePost({action:'pemindahan', batchId: 'B-' + Date.now(), date: tfDate, unitId: parseInt(tfUnit), petak: tfPetak, size: tfSize, qty: parseInt(tfQty)})} className="w-full h-12 bg-blue-600 text-white font-extrabold rounded-xl text-xs mt-5 shadow-lg">Hantar Rekod Pemindahan</button>
           </div>
         )}
 
-        {/* TAB 3: FIELD WORKER - LOG KEMATIAN */}
         {activeTab === 'mortality' && (
           <div className={`border p-6 rounded-3xl ${theme.card}`}>
             <h3 className="text-xs font-black uppercase mb-4 text-red-500 tracking-wider">Kemasukan Rekod Kematian</h3>
@@ -252,24 +264,24 @@ export default function App() {
 
             {mortalityType === 'harian' ? (
               <div className="space-y-3">
-                <input type="number" placeholder="Unit Sangkar (1-24)" value={mdUnit} onChange={e => setMdUnit(e.target.value)} className={`w-full h-11 border px-3 rounded-xl outline-none ${theme.input}`} />
+                <input type="number" inputMode="numeric" placeholder="Unit Sangkar (1-24)" value={mdUnit} onChange={e => setMdUnit(e.target.value)} className={`w-full h-11 border px-3 rounded-xl outline-none ${theme.input}`} />
                 <div className="flex gap-2">
                   <button onClick={() => setMdPetak('1')} className={`flex-1 h-11 rounded-xl border text-xs transition-all ${mdPetak === '1' ? 'bg-red-600 text-white border-transparent' : ''}`}>Petak 1</button>
                   <button onClick={() => setMdPetak('2')} className={`flex-1 h-11 rounded-xl border text-xs transition-all ${mdPetak === '2' ? 'bg-red-600 text-white border-transparent' : ''}`}>Petak 2</button>
                 </div>
-                <input type="number" placeholder="Kuantiti Mati Ditemui" value={mdQty} onChange={e => setMdQty(e.target.value)} className={`w-full h-11 border px-3 rounded-xl outline-none ${theme.input}`} />
+                <input type="number" inputMode="numeric" placeholder="Kuantiti Mati Ditemui" value={mdQty} onChange={e => setMdQty(e.target.value)} className={`w-full h-11 border px-3 rounded-xl outline-none ${theme.input}`} />
                 <button onClick={() => handlePost({action:'kematian', date: new Date().toISOString().split('T')[0], unitId: parseInt(mdUnit), petak: mdPetak, qty: parseInt(mdQty)})} className="w-full h-12 bg-red-600 text-white font-bold rounded-xl text-xs mt-3 shadow">Simpan Kematian Harian</button>
               </div>
             ) : (
               <div className="space-y-3">
                 <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Pilih Batch Asal Terkini</label>
                 <select value={selectedBatchIdState} onChange={e => setSelectedBatchIdState(e.target.value)} className={`w-full h-11 border px-3 rounded-xl text-xs bg-neutral-900 outline-none ${theme.input} ${theme.selectText}`}>
-                  <option value="" className={theme.selectText}>-- Sila Pilih Batch Sedia Ada --</option>
+                  <option value="">-- Sila Pilih Batch Sedia Ada --</option>
                   {cloudData.transfers?.map((t, idx) => (
-                    <option key={idx} value={t.id} className={theme.selectText}>Unit {t.unitId} (P{t.petak}) - Qty: {t.qty} [{t.date}]</option>
+                    <option key={idx} value={t.id}>Unit {t.unitId} (P{t.petak}) - Qty: {t.qty} [{t.date}]</option>
                   ))}
                 </select>
-                <input type="number" placeholder="Jumlah Mati Pasca-Transfer (1-3 Hari)" value={mdQty} onChange={e => setMdQty(e.target.value)} className={`w-full h-11 border px-3 rounded-xl outline-none ${theme.input}`} />
+                <input type="number" inputMode="numeric" placeholder="Jumlah Mati Pasca-Transfer (1-3 Hari)" value={mdQty} onChange={e => setMdQty(e.target.value)} className={`w-full h-11 border px-3 rounded-xl outline-none ${theme.input}`} />
                 <button onClick={() => {
                   if(!selectedBatchIdState) return alert("Sila pilih batch!");
                   handlePost({ action: "update_post_dead", batchId: selectedBatchIdState, qty: parseInt(mdQty) });
@@ -280,37 +292,70 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 4: NEW CORE GROWTH MODULE TAB */}
+        {/* TAB 4: WORKER OPTIMIZED GROWTH TRACKING WITH DECIMAL PAD FOR CM OVERRIDES */}
         {activeTab === 'growth' && (
           <div className={`border p-6 rounded-3xl ${theme.card}`}>
-            <h3 className="text-xs font-black uppercase mb-1 text-emerald-500 tracking-wider">Kadar Pertumbuhan Abone</h3>
-            <p className="text-[11px] opacity-50 mb-4">Sila masukkan sampel ukuran panjang cangkerang (shell length) dalam ukuran milimeter (mm).</p>
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <h3 className="text-xs font-black uppercase text-emerald-500 tracking-wider">Kadar Pertumbuhan Abalone</h3>
+                <p className="text-[11px] opacity-50">Sila ukur saiz sampel dalam unit sentimeter (cm).</p>
+              </div>
+              <span className="px-2.5 py-1 rounded-xl font-black bg-emerald-500/10 text-emerald-500 text-[11px] whitespace-nowrap">{localSampleList.length} Sampel Terkumpul</span>
+            </div>
             
-            <div className="grid grid-cols-2 gap-4 mb-3">
+            <div className="grid grid-cols-2 gap-4 mb-4 border-b border-gray-500/10 pb-4">
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Unit Sangkar</label>
-                <input type="number" placeholder="1-24" value={grUnit} onChange={e => setGrUnit(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 text-xs outline-none ${theme.input}`} />
+                <input type="number" inputMode="numeric" disabled={localSampleList.length > 0} placeholder="1-24" value={grUnit} onChange={e => setGrUnit(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 text-xs outline-none ${theme.input} disabled:opacity-40`} />
               </div>
               <div>
                 <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Petak</label>
                 <div className="flex gap-2 mt-1">
                   {['1', '2'].map(p => (
-                    <button key={p} onClick={() => setGrPetak(p)} className={`flex-1 h-11 rounded-xl font-bold border text-xs transition-all ${grPetak === p ? 'bg-emerald-600 text-white border-transparent' : ''}`}>Petak {p}</button>
+                    <button key={p} disabled={localSampleList.length > 0} onClick={() => setGrPetak(p)} className={`flex-1 h-11 rounded-xl font-bold border text-xs transition-all disabled:opacity-40 ${grPetak === p ? 'bg-emerald-600 text-white border-transparent' : ''}`}>Petak {p}</button>
                   ))}
                 </div>
               </div>
             </div>
 
-            <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Panjang Cangkerang (35 mm - 70 mm)</label>
-            <input type="number" placeholder="Masukkan nilai sampel (Contoh: 45)" value={grLength} onChange={e => setGrLength(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 text-xs outline-none ${theme.input}`} />
+            {localSampleList.length > 0 && (
+              <div className="p-3 bg-black/10 dark:bg-white/5 border border-dashed border-gray-500/20 rounded-xl mb-4 flex justify-between items-center text-xs">
+                <div>Purata Saiz Batch Semasa: <b className="text-blue-500 text-sm">{getLocalListAverage()} cm</b></div>
+                <button onClick={() => setLocalSampleList([])} className="text-[10px] bg-red-600/10 text-red-500 px-2 py-0.5 rounded-md font-bold">Padam Semua</button>
+              </div>
+            )}
+
+            {/* UPGRADED FORM ENFORCING NATIVE ACCESSIBILITY DECIMAL PAD KEYBOARDS FOR SMARTPHONES */}
+            <form onSubmit={addSampleToList} className="flex gap-2 items-end">
+              <div className="flex-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider opacity-60">Ukur Saiz Sampel Berikutnya (cm)</label>
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  inputMode="decimal" 
+                  placeholder="Contoh: 4.5" 
+                  value={currentSingleSampleInput} 
+                  onChange={e => setCurrentSingleSampleInput(e.target.value)} 
+                  className={`w-full h-11 border px-3 rounded-xl mt-1 text-xs outline-none ${theme.input}`} 
+                />
+              </div>
+              <button type="submit" className="h-11 px-5 bg-neutral-700 hover:bg-neutral-600 text-white font-bold rounded-xl text-xs whitespace-nowrap">Tambah</button>
+            </form>
+
+            {localSampleList.length > 0 && (
+              <div className="mt-4 p-2 bg-black/5 dark:bg-black/20 rounded-xl max-h-24 overflow-y-auto flex flex-wrap gap-1.5 border border-gray-500/5">
+                {localSampleList.map((s, i) => (
+                  <span key={i} className="text-[10px] px-2 py-1 rounded bg-blue-600/10 text-blue-400 font-bold">#{i+1}: {s} cm</span>
+                ))}
+              </div>
+            )}
             
-            <button onClick={() => {
-              const len = parseInt(grLength);
-              if(!grUnit || !len) return alert("Sila isi semua maklumat.");
-              if(len < 35 || len > 70) return alert("Nilai di luar julat normal abalone (35mm - 70mm).");
-              handlePost({ action: "growth_log", unitId: parseInt(grUnit), petak: grPetak, length: len });
-              setGrLength('');
-            }} className="w-full h-12 bg-emerald-600 text-white font-extrabold rounded-xl text-xs mt-5 shadow-md">Simpan Sampel Pertumbuhan</button>
+            <button disabled={localSampleList.length < 1 || !grUnit} onClick={() => {
+              handlePost({ action: "growth_batch_log", unitId: parseInt(grUnit), petak: grPetak, samples: localSampleList });
+              setLocalSampleList([]); setGrUnit('');
+            }} className="w-full h-12 bg-emerald-600 disabled:bg-neutral-800 text-white font-extrabold rounded-xl text-xs mt-5 shadow-md disabled:opacity-40">
+              🚀 Hantar Semua {localSampleList.length} Sampel ke Cloud
+            </button>
           </div>
         )}
 
@@ -327,8 +372,6 @@ export default function App() {
               const global = getGlobalMetrics();
               return (
                 <div className="space-y-4">
-                  
-                  {/* Global Macro KPI Card Layout Panels */}
                   <div className={`border p-6 rounded-3xl grid grid-cols-2 gap-4 ${theme.card}`}>
                     <div className="col-span-2 text-center border-b pb-3 border-gray-500/10">
                       <span className="text-[10px] uppercase font-bold tracking-widest opacity-40 block mb-1">Global Farm Survival Rate</span>
@@ -352,7 +395,6 @@ export default function App() {
                     <span className="px-3 py-1 bg-blue-600/10 text-blue-500 rounded-lg text-xs font-black">{getElapsedDays()} Days Elapsed</span>
                   </div>
 
-                  {/* Dynamic Post-Transfer Lost Ratio Logs Container */}
                   <div className={`border p-4 rounded-2xl ${theme.card}`}>
                     <h4 className="text-xs font-black uppercase text-gray-400 mb-3 tracking-wider">Post-Transfer Batch Metrics</h4>
                     <div className="divide-y divide-gray-500/10 space-y-2">
@@ -362,7 +404,7 @@ export default function App() {
                           <div key={idx} className="flex justify-between items-center pt-2 text-xs">
                             <div>
                               <div className="font-bold">Unit {t.unitId} — Petak {t.petak}</div>
-                              <div className="text-[10px] opacity-40">{t.date} | Input: {t.qty} spats</div>
+                              <div className="text-[10px] opacity-40">{t.date} | Input: {t.qty} ({t.size})</div>
                             </div>
                             <div className="text-right">
                               <div className="text-red-400 font-bold">{t.postDead} Dead</div>
@@ -373,7 +415,6 @@ export default function App() {
                       })}
                     </div>
                   </div>
-
                 </div>
               );
             })()}
