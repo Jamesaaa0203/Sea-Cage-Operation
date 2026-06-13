@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby2jrJkyHH0LO0h9aXcsgjPhEp_dgmszAqPG5D5mZjr8jBPGT9ASqIWFrD4VIgqfXDGXQ/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwT_FNKl5m2VnTGF_W_bQDCkbpbDLz24Owk8-VIMpEVePJUZNrAoXtMF7eg5JB0Y4UqvA/exec";
 
 const THEMES = {
   dark: { bg: 'bg-[#121212]', card: 'bg-[#1E1E1E] border-[#2C2C2C]', text: 'text-white', muted: 'text-gray-400', input: 'bg-[#181818] border-[#2C2C2C] text-white focus:border-[#3A86FF]', accent: '#3A86FF', success: 'border-[#00E676]', danger: 'border-[#FF1744]', gridBg: 'bg-[#181818]' },
@@ -26,7 +26,7 @@ export default function App() {
   const [tfQty, setTfQty] = useState('');
   
   const [mortalityType, setMortalityType] = useState('harian'); 
-  const [selectedBatchIdx, setSelectedBatchIdx] = useState('');
+  const [selectedBatchIdState, setSelectedBatchIdState] = useState('');
   const [mdUnit, setMdUnit] = useState('');
   const [mdPetak, setMdPetak] = useState('1');
   const [mdQty, setMdQty] = useState('');
@@ -37,7 +37,6 @@ export default function App() {
 
   const theme = isDarkMode ? THEMES.dark : THEMES.light;
 
-  // The custom matrix matching your physical sequence layout map
   const leftColumnMatrix =  [9,  10, 11, 12, 13, 14, 15, 16];
   const middleColumnMatrix = [1,  2,  3,  4,  17, 18, 19, 20];
   const rightColumnMatrix =  [5,  6,  7,  8,  21, 22, 23, 24];
@@ -127,7 +126,6 @@ export default function App() {
 
     return (
       <div key={uId} onClick={() => setSelectedCageUnit(uId)} className={`border-2 rounded-xl h-24 flex flex-col items-center justify-center cursor-pointer transition-transform active:scale-95 relative ${theme.gridBg} ${theme.success}`}>
-        {/* Fixed Unit Label Placement Inside the box */}
         <div className="absolute top-2 left-3 text-[11px] font-black tracking-tight opacity-70">Unit {uId}</div>
         <div className="text-xl font-black text-blue-500 mt-2">{combinedTotalLive}</div>
         <div className="text-[9px] uppercase tracking-wider opacity-50 mt-0.5">Live Spats</div>
@@ -140,7 +138,7 @@ export default function App() {
       
       {isLoading && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center font-black text-xs text-white">
-          SYNCHRONIZING WITH GOOGLE SHEET CLOUD...
+          SYNCHRONIZING WITH CLOUD...
         </div>
       )}
 
@@ -192,7 +190,6 @@ export default function App() {
             
             <div className="grid grid-cols-12 gap-3">
               <div className="col-span-9 grid grid-cols-3 gap-3">
-                {/* Column Headers built inline within the matrix containment structure */}
                 <div className="space-y-3">
                   <div className="text-[10px] font-black uppercase tracking-wider text-center py-1 opacity-40">Left Row</div>
                   {leftColumnMatrix.map(uId => renderCageUnit(uId))}
@@ -249,18 +246,17 @@ export default function App() {
             ) : (
               <div className="space-y-3">
                 <label className="text-[10px] font-bold text-gray-400">Pilih Batch Asal</label>
-                <select value={selectedBatchIdx} onChange={e => setSelectedBatchIdx(e.target.value)} className={`w-full h-11 border px-3 rounded-xl text-xs bg-neutral-900 ${theme.input}`}>
+                <select value={selectedBatchIdState} onChange={e => setSelectedBatchIdState(e.target.value)} className={`w-full h-11 border px-3 rounded-xl text-xs bg-neutral-950 text-white ${theme.input}`}>
                   <option value="">-- Sila Pilih Batch Sedia Ada --</option>
                   {cloudData.transfers?.map((t, idx) => (
-                    <option key={idx} value={idx}>Unit {t.unitId} (P{t.petak}) - {t.qty} spats [{t.date}]</option>
+                    <option key={idx} value={t.id}>Unit {t.unitId} (P{t.petak}) - Qty: {t.qty} [{t.date}]</option>
                   ))}
                 </select>
                 <input type="number" placeholder="Jumlah Mati Pasca-Transfer (1-3 Hari)" value={mdQty} onChange={e => setMdQty(e.target.value)} className={`w-full h-11 border px-3 rounded-xl outline-none ${theme.input}`} />
                 <button onClick={() => {
-                  const targetBatch = cloudData.transfers[selectedBatchIdx];
-                  if(!targetBatch) return alert("Pilih batch dahulu!");
-                  handlePost({ action: "update_post_dead", batchId: targetBatch.id, qty: parseInt(mdQty) });
-                  setSelectedBatchIdx(''); setMdQty('');
+                  if(!selectedBatchIdState) return alert("Sila pilih batch!");
+                  handlePost({ action: "update_post_dead", batchId: selectedBatchIdState, qty: parseInt(mdQty) });
+                  setSelectedBatchIdState(''); setMdQty('');
                 }} className="w-full h-12 bg-red-600 text-white font-bold rounded-xl text-xs">Kemaskini & Kira %</button>
               </div>
             )}
@@ -279,7 +275,7 @@ export default function App() {
               const global = getGlobalMetrics();
               return (
                 <div className="space-y-4">
-                  {/* Executive Macro Corporate Overview Metrics Panel Grid */}
+                  
                   <div className={`border p-6 rounded-2xl grid grid-cols-2 gap-4 ${theme.card}`}>
                     <div className="col-span-2 text-center border-b pb-3 border-neutral-800">
                       <span className="text-[10px] uppercase font-bold tracking-wider opacity-40 block mb-1">Global Farm Survival Rate</span>
@@ -295,7 +291,6 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Operational Timeline Status Log */}
                   <div className={`border p-4 rounded-xl flex justify-between items-center ${theme.card}`}>
                     <div>
                       <h3 className="text-xs font-black uppercase text-blue-500">Operation Status Log</h3>
@@ -304,7 +299,6 @@ export default function App() {
                     <span className="px-3 py-1 bg-blue-600/10 text-blue-500 rounded-lg text-xs font-black">{getElapsedDays()} Days Elapsed</span>
                   </div>
 
-                  {/* Initial Baseline Layout Configurations Setup */}
                   <div className={`border p-4 rounded-xl ${theme.card}`}>
                     <h4 className="text-xs font-black uppercase text-blue-500 mb-3">🛠️ Initial Layout Inventory Setup</h4>
                     <div className="grid grid-cols-3 gap-2 mb-3">
@@ -322,7 +316,6 @@ export default function App() {
                     }} className="w-full h-10 bg-blue-600 text-white font-bold text-xs rounded-lg">Save Configuration</button>
                   </div>
 
-                  {/* Granular Post-Transfer Batch Summary Metric Rows */}
                   <div className={`border p-4 rounded-xl ${theme.card}`}>
                     <h4 className="text-xs font-black uppercase text-gray-400 mb-3">Post-Transfer Batch Metrics</h4>
                     <div className="divide-y divide-neutral-800 space-y-2">
