@@ -3,8 +3,8 @@ import React, { useState, useEffect } from 'react';
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyE_bSUMWORC6N4SWe1BeAwTq8VokMRxeB74NQNuhmmHpsjCDHhGNQna4JEZXGzABStdg/exec";
 
 const THEMES = {
-  dark: { bg: 'bg-[#0F1115]', card: 'bg-[#161920] border-[#222630]', text: 'text-white', muted: 'text-gray-400', input: 'bg-[#1D212C] border-[#2E3545] text-white focus:border-blue-500', selectText: 'text-white', accent: '#3A86FF', success: 'border-emerald-500 bg-emerald-500/5', gridBg: 'bg-[#161920]' },
-  light: { bg: 'bg-[#F4F6F9]', card: 'bg-white border-[#E4E7EB] shadow-sm', text: 'text-[#1F2937]', muted: 'text-gray-500', input: 'bg-white border-[#D1D5DB] text-[#1F2937] focus:border-blue-600', selectText: 'text-neutral-900', accent: '#0D6EFD', success: 'border-emerald-600 bg-emerald-600/5', gridBg: 'bg-white' }
+  dark: { bg: 'bg-[#0B0D10]', card: 'bg-[#121620] border-[#1E2330]', text: 'text-white', muted: 'text-[#8A94A6]', input: 'bg-[#1A1F2C] border-[#2A3143] text-white focus:border-blue-500', selectText: 'text-white', accent: '#3A86FF', success: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-400', danger: 'border-rose-500/30 bg-rose-500/5 text-rose-400', gridBg: 'bg-[#121620]' },
+  light: { bg: 'bg-[#F4F6F9]', card: 'bg-white border-[#E4E7EB] shadow-sm', text: 'text-[#1F2937]', muted: 'text-[#6B7280]', input: 'bg-white border-[#D1D5DB] text-[#1F2937] focus:border-blue-600', selectText: 'text-neutral-900', accent: '#0D6EFD', success: 'border-emerald-200 bg-emerald-500/10 text-emerald-700', danger: 'border-rose-200 bg-rose-500/10 text-rose-700', gridBg: 'bg-white' }
 };
 
 export default function App() {
@@ -36,6 +36,8 @@ export default function App() {
   const [currentSingleSampleInput, setCurrentSingleSampleInput] = useState('');
   const [localSampleList, setLocalSampleList] = useState([]);
 
+  // Sub-navigation state to unpack the manager window dashboard view
+  const [managerSubTab, setManagerSubTab] = useState('dashboard');
   const [selectedOpsWeek, setSelectedOpsWeek] = useState(0);
 
   const theme = isDarkMode ? THEMES.dark : THEMES.light;
@@ -364,11 +366,11 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 5: DUAL TRANSLATED HIGH-END ENHANCED MANAGER HUB */}
+        {/* TAB 5: DUAL TRANSLATED REFACTORED WORKSPACE GATEWAY */}
         {activeTab === 'manager' && (
           <div className="space-y-6">
             {!isManagerUnlocked ? (
-              <div className={`border p-8 rounded-3xl text-center flex flex-col items-center ${theme.card}`}>
+              <div className={`border p-8 rounded-2xl text-center flex flex-col items-center ${theme.card}`}>
                 <h3 className="text-xs font-bold uppercase tracking-wider mb-2">Manager Access PIN / 관리자 인증</h3>
                 <input type="password" value={pinInput} onChange={e => setPinInput(e.target.value)} className={`h-11 text-center text-xl tracking-widest max-w-[150px] rounded-xl border outline-none ${theme.input}`} placeholder="••••" maxLength={4} />
                 <button onClick={() => { if(pinInput === '3653') { setIsManagerUnlocked(true); setPinInput(''); setSelectedOpsWeek(getLiveOpsWeekNumber()); } else alert("PIN Incorrect / 비밀번호 오류!"); }} className="w-full max-w-[150px] h-11 bg-blue-600 text-white font-bold rounded-xl mt-4 text-xs">Unlock / 인증</button>
@@ -378,107 +380,127 @@ export default function App() {
               const maxActiveWeeks = getLiveOpsWeekNumber();
 
               return (
-                <div className="space-y-6">
+                <div className="space-y-5">
                   
-                  {/* CARD 1: GLOBAL KPIs / 글로벌 핵심 지표 */}
-                  <div className={`border p-6 rounded-3xl grid grid-cols-3 gap-4 text-center shadow-sm ${theme.card}`}>
-                    <div className="border-r border-gray-500/10 py-1">
-                      <span className="text-[9px] uppercase font-black tracking-wider opacity-40 block mb-0.5">Total Spats<br/>총 치패량</span>
-                      <span className="text-xl font-black tracking-tight">{global.totalInput}</span>
-                    </div>
-                    <div className="border-r border-gray-500/10 py-1">
-                      <span className="text-[9px] uppercase font-black tracking-wider opacity-40 block mb-0.5">Mortality<br/>총 폐사량</span>
-                      <span className="text-xl font-black text-rose-500 tracking-tight">{global.totalDead}</span>
-                    </div>
-                    <div className="py-1">
-                      <span className="text-[9px] uppercase font-black tracking-wider opacity-40 block mb-0.5">Survival %<br/>생존율</span>
-                      <span className="text-xl font-black text-emerald-400 tracking-tight">{global.globalSurvival}%</span>
-                    </div>
+                  {/* UNPACKED CONTROL BAR: SUB NAVIGATION TOGGLE SWITCH */}
+                  <div className="flex border p-1 rounded-xl bg-black/10 dark:bg-white/5 border-gray-500/10">
+                    <button 
+                      onClick={() => setManagerSubTab('dashboard')} 
+                      className={`flex-1 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wide transition-all ${managerSubTab === 'dashboard' ? 'bg-blue-600 text-white shadow' : theme.muted}`}
+                    >
+                      📊 Dashboard / 대시보드 개요
+                    </button>
+                    <button 
+                      onClick={() => setManagerSubTab('batches')} 
+                      className={`flex-1 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wide transition-all ${managerSubTab === 'batches' ? 'bg-blue-600 text-white shadow' : theme.muted}`}
+                    >
+                      📋 Batch Performance / 배치별 실적
+                    </button>
                   </div>
 
-                  {/* TIMELINE LOGGER BOX */}
-                  <div className={`border p-4 rounded-2xl flex justify-between items-center ${theme.card}`}>
-                    <div>
-                      <h3 className="text-xs font-black uppercase text-blue-500">Operation Status Log / 운영 상태 로그</h3>
-                      <p className="text-[10px] opacity-40 mt-0.5">Start Date / 시작일: June 8, 2026</p>
+                  {/* SUB-VIEW 1: CLEAN METRICS SUMMARY PROFILE */}
+                  {managerSubTab === 'dashboard' && (
+                    <div className="space-y-4">
+                      <div className={`border p-6 rounded-3xl grid grid-cols-3 gap-4 text-center shadow-sm ${theme.card}`}>
+                        <div className="border-r border-gray-500/10 py-2">
+                          <span className="text-[9px] uppercase font-black tracking-wider opacity-40 block mb-1">Total Spats<br/>총 치패량</span>
+                          <span className="text-xl font-black tracking-tight">{global.totalInput}</span>
+                        </div>
+                        <div className="border-r border-gray-500/10 py-2">
+                          <span className="text-[9px] uppercase font-black tracking-wider opacity-40 block mb-1">Mortality<br/>총 폐사량</span>
+                          <span className="text-xl font-black text-rose-500 tracking-tight">{global.totalDead}</span>
+                        </div>
+                        <div className="py-2">
+                          <span className="text-[9px] uppercase font-black tracking-wider opacity-40 block mb-1">Survival %<br/>생존율</span>
+                          <span className="text-xl font-black text-emerald-400 tracking-tight">{global.globalSurvival}%</span>
+                        </div>
+                      </div>
+
+                      <div className={`border p-5 rounded-2xl flex justify-between items-center ${theme.card}`}>
+                        <div>
+                          <h3 className="text-xs font-black uppercase text-blue-500">Operation Status Log / 운영 상태 로그</h3>
+                          <p className="text-[10px] opacity-40 mt-0.5">Start Date / 시작일: June 8, 2026</p>
+                        </div>
+                        <span className="px-3 py-1 bg-blue-600/10 text-blue-500 rounded-lg text-xs font-black">{getElapsedDays()} Days Elapsed / 일 경과</span>
+                      </div>
                     </div>
-                    <span className="px-3 py-1 bg-blue-600/10 text-blue-500 rounded-lg text-xs font-black">{getElapsedDays()} Days Elapsed / 일 경과</span>
-                  </div>
+                  )}
 
-                  {/* CARD 2: TIMELINE SELECTOR / 주차별 아카이브 선택 */}
-                  <div className={`border p-5 rounded-3xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ${theme.card}`}>
-                    <div>
-                      <h4 className="text-xs font-black uppercase tracking-wider text-blue-500">Historical Archive Timeline / 과거 이력 타임라인</h4>
-                      <p className="text-[11px] opacity-40 mt-0.5">Select operational 7-day windows / 7일 단위 운영 주차를 선택하세요.</p>
-                    </div>
-                    <div className="w-full md:w-auto min-w-[220px]">
-                      <select 
-                        value={selectedOpsWeek} 
-                        onChange={e => setSelectedOpsWeek(parseInt(e.target.value))} 
-                        className={`w-full h-11 border px-3 rounded-xl text-xs font-bold outline-none bg-neutral-900 ${theme.input} ${theme.selectText}`}
-                      >
-                        {Array.from({ length: maxActiveWeeks }, (_, idx) => {
-                          const wNum = idx + 1;
-                          return (
-                            <option key={wNum} value={wNum} className={theme.selectText}>
-                              Week {wNum} ({getWeekRangeString(wNum)}) {wNum === maxActiveWeeks ? '— [ Live Week / 현재 주차 ]' : ''}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </div>
-                  </div>
+                  {/* SUB-VIEW 2: ROLLING ARCHIVE HISTORY ACCORDION CONTAINER */}
+                  {managerSubTab === 'batches' && (
+                    <div className="space-y-4">
+                      <div className={`border p-5 rounded-3xl flex flex-col gap-2 ${theme.card}`}>
+                        <div>
+                          <h4 className="text-xs font-black uppercase tracking-wider text-blue-500">Historical Archive Timeline / 과거 이력 타임라인</h4>
+                          <p className="text-[10px] opacity-40 mt-0.5">Select operational 7-day windows / 7일 단위 운영 주차를 선택하세요.</p>
+                        </div>
+                        <select 
+                          value={selectedOpsWeek} 
+                          onChange={e => setSelectedOpsWeek(parseInt(e.target.value))} 
+                          className={`w-full h-11 border px-3 rounded-xl text-xs font-bold outline-none bg-neutral-900 ${theme.input} ${theme.selectText}`}
+                        >
+                          {Array.from({ length: maxActiveWeeks }, (_, idx) => {
+                            const wNum = idx + 1;
+                            return (
+                              <option key={wNum} value={wNum} className={theme.selectText}>
+                                Week {wNum} ({getWeekRangeString(wNum)}) {wNum === maxActiveWeeks ? '— [ Live Week / 현재 주차 ]' : ''}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
 
-                  {/* CARD 3: WEEKLY REPORT CARD STACK / 주차별 배치 리포트 */}
-                  <div className="space-y-3">
-                    <h3 className="text-[10px] font-black uppercase tracking-widest opacity-40 pl-1">
-                      Batch Logs: Ops Week {selectedOpsWeek} / 배치 로그: 운영 {selectedOpsWeek}주차
-                    </h3>
-                    
-                    {(() => {
-                      const selectedWeeklyBatches = cloudData.transfers?.filter(t => {
-                        const batchDate = new Date(t.date);
-                        const diffTime = batchDate.getTime() - EPOCH_START.getTime();
-                        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                        const calculatedWeek = Math.floor(diffDays / 7) + 1;
-                        return calculatedWeek === selectedOpsWeek;
-                      });
+                      <div className="space-y-3">
+                        <h3 className="text-[10px] font-black uppercase tracking-widest opacity-40 pl-1">
+                          Batch Logs: Ops Week {selectedOpsWeek} / 배치 로그: 운영 {selectedOpsWeek}주차
+                        </h3>
+                        
+                        {(() => {
+                          const selectedWeeklyBatches = cloudData.transfers?.filter(t => {
+                            const batchDate = new Date(t.date);
+                            const diffTime = batchDate.getTime() - EPOCH_START.getTime();
+                            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                            const calculatedWeek = Math.floor(diffDays / 7) + 1;
+                            return calculatedWeek === selectedOpsWeek;
+                          });
 
-                      if (!selectedWeeklyBatches || selectedWeeklyBatches.length === 0) {
-                        return (
-                          <div className={`border p-8 rounded-2xl text-center text-xs opacity-40 font-medium ${theme.card}`}>
-                            Tiada rekod / No records registered in this operational week bracket.<br/>해당 운영 주차에 등록된 배치 이력이 없습니다.
-                          </div>
-                        );
-                      }
-
-                      return selectedWeeklyBatches.map((t, idx) => {
-                        const lossPct = t.qty > 0 ? ((t.postDead / t.qty) * 100).toFixed(1) : "0.0";
-                        const isHighLoss = parseFloat(lossPct) >= 5.0;
-
-                        return (
-                          <div key={idx} className={`border p-5 rounded-2xl flex justify-between items-center shadow-sm hover:border-blue-500/30 transition-all ${theme.card}`}>
-                            <div className="space-y-1">
-                              <div className="text-xs font-black tracking-tight flex items-center gap-2">
-                                Unit {t.unitId} — Petak {t.petak}
-                                <span className={`text-[8px] uppercase tracking-wider px-2 py-0.5 font-bold rounded-md border ${isHighLoss ? theme.danger : theme.success}`}>
-                                  {lossPct}% Loss / 손실률
-                                </span>
+                          if (!selectedWeeklyBatches || selectedWeeklyBatches.length === 0) {
+                            return (
+                              <div className={`border p-8 rounded-2xl text-center text-xs opacity-40 font-medium ${theme.card}`}>
+                                Tiada rekod / No transfers registered in this operational week bracket.<br/>해당 운영 주차에 등록된 배치 이력이 없습니다.
                               </div>
-                              <div className="text-[11px] opacity-40">
-                                Date / 이송일: <b className="font-semibold">{t.date}</b> | Size / 규격: <b className="font-semibold">{t.size || "1.15 cm"}</b>
+                            );
+                          }
+
+                          return selectedWeeklyBatches.map((t, idx) => {
+                            const lossPct = t.qty > 0 ? ((t.postDead / t.qty) * 100).toFixed(1) : "0.0";
+                            const isHighLoss = parseFloat(lossPct) >= 5.0;
+
+                            return (
+                              <div key={idx} className={`border p-5 rounded-2xl flex justify-between items-center shadow-sm hover:border-blue-500/30 transition-all ${theme.card}`}>
+                                <div className="space-y-1">
+                                  <div className="text-xs font-black tracking-tight flex items-center gap-2">
+                                    Unit {t.unitId} — Petak {t.petak}
+                                    <span className={`text-[8px] uppercase tracking-wider px-2 py-0.5 font-bold rounded-md border ${isHighLoss ? theme.danger : theme.success}`}>
+                                      {lossPct}% Loss / 손실률
+                                    </span>
+                                  </div>
+                                  <div className="text-[11px] opacity-40">
+                                    Date / 이송일: <b className="font-semibold">{t.date}</b> | Size / 규격: <b className="font-semibold">{t.size || "1.15 cm"}</b>
+                                  </div>
+                                </div>
+                                <div className="text-right space-y-0.5">
+                                  <div className="text-[10px] uppercase font-bold opacity-30 tracking-wider">Post-Transfer Mortality / 이송 후 폐사</div>
+                                  <div className="text-sm font-black">{t.postDead} <span className="text-[10px] font-bold opacity-40">dead / 미</span></div>
+                                  <div className="text-[10px] font-bold opacity-50">from {t.qty} spats / 총 {t.qty} 미 중</div>
+                                </div>
                               </div>
-                            </div>
-                            <div className="text-right space-y-0.5">
-                              <div className="text-[10px] uppercase font-bold opacity-30 tracking-wider">Post-Transfer Mortality / 이송 후 폐사</div>
-                              <div className="text-sm font-black">{t.postDead} <span className="text-[10px] font-bold opacity-40">dead / 미</span></div>
-                              <div className="text-[10px] font-bold opacity-50">from {t.qty} spats / 총 {t.qty} 미 중</div>
-                            </div>
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                    </div>
+                  )}
 
                 </div>
               );
