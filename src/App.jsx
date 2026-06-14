@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYQwg9o3TPzrftrhBXHDq_-N3mBIAsUhVtBW7zI5uqclrE1rLNKqc1PDmuSLZcQZXNUw/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxugPujCscRLdY_lY_-54oN3mrdXyGMgQDek5SEcQy6b7ED9XkMjLr6BKYP0QpmoRM3Vg/exec";
 
 const THEMES = {
-  dark: { bg: 'bg-[#0B0D10]', card: 'bg-[#121620] border-[#1E2330]', text: 'text-white', muted: 'text-[#8A94A6]', input: 'bg-[#1A1F2C] border-[#2A3143] text-white focus:border-blue-500', selectText: 'text-white', accent: '#3A86FF', success: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-400', danger: 'border-rose-500/40 bg-rose-500/5 text-rose-400', gridBg: 'bg-[#121620]' },
-  light: { bg: 'bg-[#F4F6F9]', card: 'bg-white border-[#E4E7EB] shadow-sm', text: 'text-[#1F2937]', muted: 'text-[#6B7280]', input: 'bg-white border-[#D1D5DB] text-[#1F2937] focus:border-blue-600', selectText: 'text-neutral-900', accent: '#0D6EFD', success: 'border-emerald-200 bg-emerald-500/10 text-emerald-700', danger: 'border-rose-200 bg-rose-500/10 text-rose-700', gridBg: 'bg-white' }
+  dark: { bg: 'bg-[#0B0D10]', card: 'bg-[#121620] border-[#1E2330]', text: 'text-white', muted: 'text-[#8A94A6]', input: 'bg-[#1A1F2C] border-[#2A3143] text-white focus:border-blue-500', selectText: 'text-white', accent: '#3A86FF', success: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-400', danger: 'border-rose-500/40 bg-rose-500/5 text-rose-400', warning: 'border-amber-500/30 bg-amber-500/5 text-amber-400', empty: 'border-gray-500/20 bg-gray-500/5 text-gray-400', gridBg: 'bg-[#121620]' },
+  light: { bg: 'bg-[#F4F6F9]', card: 'bg-white border-[#E4E7EB] shadow-sm', text: 'text-[#1F2937]', muted: 'text-[#6B7280]', input: 'bg-white border-[#D1D5DB] text-[#1F2937] focus:border-blue-600', selectText: 'text-neutral-900', accent: '#0D6EFD', success: 'border-emerald-200 bg-emerald-500/10 text-emerald-700', danger: 'border-rose-200 bg-rose-500/10 text-rose-700', warning: 'border-amber-200 bg-amber-500/10 text-amber-700', empty: 'border-gray-300 bg-gray-500/5 text-gray-600', gridBg: 'bg-white' }
 };
 
 export default function App() {
@@ -36,7 +36,6 @@ export default function App() {
   const [currentSingleSampleInput, setCurrentSingleSampleInput] = useState('');
   const [localSampleList, setLocalSampleList] = useState([]);
 
-  // Unpacked Manager Navigation Settings
   const [managerSubTab, setManagerSubTab] = useState('dashboard');
   const [selectedOpsWeek, setSelectedOpsWeek] = useState(0);
   const [maintUnitInput, setMaintUnitInput] = useState('');
@@ -76,7 +75,7 @@ export default function App() {
     setIsLoading(true);
     try {
       await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-      alert("Berjaya disimpan!");
+      alert("Berjaya disimpan ke cloud Google Sheet!");
       await fetchAllData();
     } catch (e) {
       alert("Ralat cloud.");
@@ -164,33 +163,56 @@ export default function App() {
     const m2 = calculateMetrics(uId, '2');
     const combinedTotalLive = m1.currentLive + m2.currentLive;
 
-    // Check if this specific cage unit has an active maintenance alert block flagged by the team
-    const maintRow = cloudData.maintenance?.find(m => parseInt(m.unitId) === parseInt(uId));
-    const isMaintenance = maintRow && maintRow.status === "Maintenance";
+    // Evaluate core database multi-status flags
+    const dbMaintRow = cloudData.maintenance?.find(m => parseInt(m.unitId) === parseInt(uId));
+    
+    // Default fallback: Automatically place Units 13-24 under construction if not explicitly overridden by sheet records
+    let currentStatus = (uId >= 13 && uId <= 24) ? "Construction" : "Active";
+    let currentIssue = (uId >= 13 && uId <= 24) ? "Tapak Belum Siap" : "";
+
+    if (dbMaintRow) {
+      currentStatus = dbMaintRow.status;
+      currentIssue = dbMaintRow.issue;
+    }
 
     if (searchQuery && !`Unit ${uId}`.toLowerCase().includes(searchQuery.toLowerCase())) {
       return <div className="h-24 opacity-5 border border-dashed rounded-xl"></div>;
     }
 
+    // Dynamic component style block configuration mappings
+    let cardStyle = theme.success;
+    let labelText = "Live Spats";
+    let innerValueDisplay = <div className="text-lg font-black tracking-tight text-blue-500 mt-2">{combinedTotalLive}</div>;
+
+    if (currentStatus === "Construction") {
+      cardStyle = theme.warning;
+      labelText = "CONSTRUCT";
+      innerValueDisplay = <div className="text-xs font-black text-amber-500 mt-2 tracking-wide">🏗️ BELUM SIAP</div>;
+    } else if (currentStatus === "Maintenance") {
+      cardStyle = theme.danger;
+      labelText = "REPAIR";
+      innerValueDisplay = <div className="text-xs font-black text-rose-500 mt-2 tracking-wide">🛠️ CORRUPTED</div>;
+    } else if (currentStatus === "Empty") {
+      cardStyle = theme.empty;
+      labelText = "EMPTY";
+      innerValueDisplay = <div className="text-xs font-black opacity-40 mt-2 tracking-wide">🕳️ SANGKAR KOSONG</div>;
+    }
+
     return (
       <div 
         key={uId} 
-        onClick={() => setSelectedCageUnit({ uId, maint: maintRow })} 
-        className={`border-2 rounded-2xl h-24 flex flex-col items-center justify-center cursor-pointer relative shadow-sm hover:border-blue-500 transition-all active:scale-95 ${theme.gridBg} ${isMaintenance ? 'border-rose-500 bg-rose-500/10 animation-pulse' : theme.success}`}
+        onClick={() => {
+          if(currentStatus === "Construction") {
+            alert(`Unit ${uId} masih dalam pembinaan (Under Construction).`);
+            return;
+          }
+          setSelectedCageUnit({ uId, status: currentStatus, issue: currentIssue });
+        }} 
+        className={`border-2 rounded-2xl h-24 flex flex-col items-center justify-center cursor-pointer relative shadow-sm hover:border-blue-500 transition-all active:scale-95 ${theme.gridBg} ${cardStyle}`}
       >
         <div className="absolute top-2 left-3 text-[10px] font-extrabold tracking-tight opacity-40">U{uId}</div>
-        
-        {isMaintenance ? (
-          <div className="text-center space-y-0.5 px-1">
-            <div className="text-[11px] font-black text-rose-500 tracking-tight">🛠️ REPAIR</div>
-            <div className="text-[8px] font-bold opacity-60 uppercase truncate max-w-[65px] text-rose-400">{maintRow.issue || "Issue"}</div>
-          </div>
-        ) : (
-          <>
-            <div className="text-lg font-black tracking-tight text-blue-500 mt-2">{combinedTotalLive}</div>
-            <div className="text-[8px] uppercase tracking-widest font-bold opacity-40 mt-0.5">Live Spats</div>
-          </>
-        )}
+        {innerValueDisplay}
+        <div className="text-[8px] uppercase tracking-widest font-bold opacity-40 mt-0.5">{labelText}</div>
       </div>
     );
   };
@@ -212,10 +234,10 @@ export default function App() {
             <div className={`w-full max-w-sm border-2 p-6 rounded-3xl shadow-2xl ${theme.card}`} onClick={e => e.stopPropagation()}>
               <h4 className="font-black text-sm uppercase text-blue-500 mb-2 border-b pb-2 tracking-wide">Unit {selectedCageUnit.uId} Profile Summary</h4>
               
-              {selectedCageUnit.maint && selectedCageUnit.maint.status === "Maintenance" && (
-                <div className="p-3 border border-rose-500/30 bg-rose-500/5 rounded-xl mb-3 text-xs text-rose-400 font-bold">
-                  ⚠️ Status: Under Maintenance / 정비 요망<br/>
-                  <span className="opacity-70 font-normal">Issue: {selectedCageUnit.maint.issue}</span>
+              {selectedCageUnit.status !== "Active" && (
+                <div className="p-3 border border-amber-500/30 bg-amber-500/5 rounded-xl mb-3 text-xs text-amber-400 font-bold">
+                  ⚠️ Status: {selectedCageUnit.status}<br/>
+                  <span className="opacity-70 font-normal">Note: {selectedCageUnit.issue || "No descriptions available"}</span>
                 </div>
               )}
 
@@ -401,7 +423,7 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 5: DUAL TRANSLATED UNPACKED MANAGER OVERVIEW WITH MAINTENANCE SYSTEM */}
+        {/* TAB 5: MANAGER SUITE HUB CODES */}
         {activeTab === 'manager' && (
           <div className="space-y-6">
             {!isManagerUnlocked ? (
@@ -417,14 +439,12 @@ export default function App() {
               return (
                 <div className="space-y-5">
                   
-                  {/* Sub-Navigation Control Bar to reduce cluster */}
                   <div className="flex border p-1 rounded-xl bg-black/10 dark:bg-white/5 border-gray-500/10">
                     <button onClick={() => setManagerSubTab('dashboard')} className={`flex-1 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wide transition-all ${managerSubTab === 'dashboard' ? 'bg-blue-600 text-white shadow' : theme.muted}`}>📊 Dashboard / 개요</button>
                     <button onClick={() => setManagerSubTab('batches')} className={`flex-1 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wide transition-all ${managerSubTab === 'batches' ? 'bg-blue-600 text-white shadow' : theme.muted}`}>📋 Batches / 실적</button>
-                    <button onClick={() => setManagerSubTab('maint')} className={`flex-1 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wide transition-all ${managerSubTab === 'maint' ? 'bg-blue-600 text-white shadow' : theme.muted}`}>🛠️ Repairs / 정비</button>
+                    <button onClick={() => setManagerSubTab('maint')} className={`flex-1 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wide transition-all ${managerSubTab === 'maint' ? 'bg-blue-600 text-white shadow' : theme.muted}`}>🛠️ Status Setup / 자산 관리</button>
                   </div>
 
-                  {/* SUB-VIEW 1: DASHBOARD CARD PANEL */}
                   {managerSubTab === 'dashboard' && (
                     <div className="space-y-4">
                       <div className={`border p-6 rounded-3xl grid grid-cols-3 gap-4 text-center shadow-sm ${theme.card}`}>
@@ -452,7 +472,6 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* SUB-VIEW 2: WEEKLY BATCH LOGS ARCHIVE */}
                   {managerSubTab === 'batches' && (
                     <div className="space-y-4">
                       <div className={`border p-5 rounded-3xl flex flex-col gap-2 ${theme.card}`}>
@@ -501,28 +520,29 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* SUB-VIEW 3: MAINTENANCE FLAG CONTROL PAD */}
                   {managerSubTab === 'maint' && (
                     <div className={`border p-6 rounded-3xl ${theme.card}`}>
-                      <h4 className="text-xs font-black uppercase text-amber-500 mb-1 tracking-wider">Cage Maintenance Controls / 상카 정비 제어</h4>
-                      <p className="text-[11px] opacity-40 mb-4">Flag damaged cages to color them red on the maps / 파손된 가두리를 설정하여 가구리 맵에 적색 경보를 표시합니다.</p>
+                      <h4 className="text-xs font-black uppercase text-amber-500 mb-1 tracking-wider">Asset Status Master Control / 자산 상태 관리 제어</h4>
+                      <p className="text-[11px] opacity-40 mb-4">Modify the structural live state parameters of any sea cage / 가두리의 정비 상태 또는 공사 중 (Belum Siap) 상태를 설정합니다.</p>
                       
                       <div className="grid grid-cols-2 gap-4 mb-3">
                         <div>
                           <label className="text-[10px] font-bold uppercase">Unit Number (1-24)</label>
-                          <input type="number" inputMode="numeric" placeholder="Ex: 4" value={maintUnitInput} onChange={e => setMaintUnitInput(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 text-xs outline-none ${theme.input}`} />
+                          <input type="number" inputMode="numeric" placeholder="Ex: 13" value={maintUnitInput} onChange={e => setMaintUnitInput(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 text-xs outline-none ${theme.input}`} />
                         </div>
                         <div>
-                          <label className="text-[10px] font-bold uppercase">Status / 상태</label>
+                          <label className="text-[10px] font-bold uppercase">Select Operational Status / 상태 선택</label>
                           <select value={maintStatusInput} onChange={e => setMaintStatusInput(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 text-xs bg-neutral-900 outline-none ${theme.input} ${theme.selectText}`}>
-                            <option value="Active">🟢 Active /정상 운영</option>
-                            <option value="Maintenance">🔴 Maintenance /정비 중</option>
+                            <option value="Active">🟢 Active / 정상 가동</option>
+                            <option value="Construction">🏗️ Construction / 공사 중 (Belum Siap)</option>
+                            <option value="Maintenance">🛠️ Maintenance / 정비 중 (Damaged)</option>
+                            <option value="Empty">🕳️ Empty / 빈 가두리 (No Stock)</option>
                           </select>
                         </div>
                       </div>
 
-                      <label className="text-[10px] font-bold uppercase">Issue Description / Rincian Masalah / 파손 내용</label>
-                      <input type="text" placeholder="Contoh: Broken Net, Frame Loose" value={maintIssueInput} onChange={e => setMaintIssueInput(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 text-xs outline-none ${theme.input}`} />
+                      <label className="text-[10px] font-bold uppercase">Status Log Note / 비고 및 파손 요약</label>
+                      <input type="text" placeholder="Contoh: Tapak Belum Siap, Broken Frame, Jaring Bocor" value={maintIssueInput} onChange={e => setMaintIssueInput(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 text-xs outline-none ${theme.input}`} />
                       
                       <button 
                         onClick={() => {
@@ -530,9 +550,9 @@ export default function App() {
                           handlePost({ action: "update_maintenance", unitId: parseInt(maintUnitInput), status: maintStatusInput, issue: maintIssueInput });
                           setMaintUnitInput(''); setMaintIssueInput('');
                         }} 
-                        className="w-full h-11 bg-amber-500 text-black font-black rounded-xl text-xs mt-4 shadow"
+                        className="w-full h-11 bg-amber-500 text-black font-black rounded-xl text-xs mt-4 shadow hover:bg-amber-400 transition-all"
                       >
-                        Update Farm Layout Status / 상태 변경 사항 저장
+                        Update Layout Status State / 자산 상태 변경 사항 저장
                       </button>
                     </div>
                   )}
