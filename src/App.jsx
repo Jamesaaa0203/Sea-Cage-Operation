@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyE_bSUMWORC6N4SWe1BeAwTq8VokMRxeB74NQNuhmmHpsjCDHhGNQna4JEZXGzABStdg/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzYQwg9o3TPzrftrhBXHDq_-N3mBIAsUhVtBW7zI5uqclrE1rLNKqc1PDmuSLZcQZXNUw/exec";
 
 const THEMES = {
-  dark: { bg: 'bg-[#0B0D10]', card: 'bg-[#121620] border-[#1E2330]', text: 'text-white', muted: 'text-[#8A94A6]', input: 'bg-[#1A1F2C] border-[#2A3143] text-white focus:border-blue-500', selectText: 'text-white', accent: '#3A86FF', success: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-400', danger: 'border-rose-500/30 bg-rose-500/5 text-rose-400', gridBg: 'bg-[#121620]' },
+  dark: { bg: 'bg-[#0B0D10]', card: 'bg-[#121620] border-[#1E2330]', text: 'text-white', muted: 'text-[#8A94A6]', input: 'bg-[#1A1F2C] border-[#2A3143] text-white focus:border-blue-500', selectText: 'text-white', accent: '#3A86FF', success: 'border-emerald-500/30 bg-emerald-500/5 text-emerald-400', danger: 'border-rose-500/40 bg-rose-500/5 text-rose-400', gridBg: 'bg-[#121620]' },
   light: { bg: 'bg-[#F4F6F9]', card: 'bg-white border-[#E4E7EB] shadow-sm', text: 'text-[#1F2937]', muted: 'text-[#6B7280]', input: 'bg-white border-[#D1D5DB] text-[#1F2937] focus:border-blue-600', selectText: 'text-neutral-900', accent: '#0D6EFD', success: 'border-emerald-200 bg-emerald-500/10 text-emerald-700', danger: 'border-rose-200 bg-rose-500/10 text-rose-700', gridBg: 'bg-white' }
 };
 
@@ -15,7 +15,7 @@ export default function App() {
   const [isManagerUnlocked, setIsManagerUnlocked] = useState(false);
   const [pinInput, setPinInput] = useState('');
   
-  const [cloudData, setCloudData] = useState({ setup: [], transfers: [], mortality: [], growth: [] });
+  const [cloudData, setCloudData] = useState({ setup: [], transfers: [], mortality: [], growth: [], maintenance: [] });
   const [selectedCageUnit, setSelectedCageUnit] = useState(null);
 
   // Forms
@@ -36,9 +36,12 @@ export default function App() {
   const [currentSingleSampleInput, setCurrentSingleSampleInput] = useState('');
   const [localSampleList, setLocalSampleList] = useState([]);
 
-  // Sub-navigation state to unpack the manager window dashboard view
+  // Unpacked Manager Navigation Settings
   const [managerSubTab, setManagerSubTab] = useState('dashboard');
   const [selectedOpsWeek, setSelectedOpsWeek] = useState(0);
+  const [maintUnitInput, setMaintUnitInput] = useState('');
+  const [maintStatusInput, setMaintStatusInput] = useState('Active');
+  const [maintIssueInput, setMaintIssueInput] = useState('');
 
   const theme = isDarkMode ? THEMES.dark : THEMES.light;
 
@@ -53,7 +56,13 @@ export default function App() {
     try {
       const res = await fetch(SCRIPT_URL);
       const data = await res.json();
-      setCloudData({ setup: data.setup || [], transfers: data.transfers || [], mortality: data.mortality || [], growth: data.growth || [] });
+      setCloudData({
+        setup: data.setup || [],
+        transfers: data.transfers || [],
+        mortality: data.mortality || [],
+        growth: data.growth || [],
+        maintenance: data.maintenance || []
+      });
     } catch(e) {
       alert("Gagal memuatkan data dari cloud Google Sheet.");
     } finally {
@@ -67,7 +76,7 @@ export default function App() {
     setIsLoading(true);
     try {
       await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-      alert("Berjaya disimpan ke cloud Google Sheet!");
+      alert("Berjaya disimpan!");
       await fetchAllData();
     } catch (e) {
       alert("Ralat cloud.");
@@ -155,15 +164,33 @@ export default function App() {
     const m2 = calculateMetrics(uId, '2');
     const combinedTotalLive = m1.currentLive + m2.currentLive;
 
+    // Check if this specific cage unit has an active maintenance alert block flagged by the team
+    const maintRow = cloudData.maintenance?.find(m => parseInt(m.unitId) === parseInt(uId));
+    const isMaintenance = maintRow && maintRow.status === "Maintenance";
+
     if (searchQuery && !`Unit ${uId}`.toLowerCase().includes(searchQuery.toLowerCase())) {
       return <div className="h-24 opacity-5 border border-dashed rounded-xl"></div>;
     }
 
     return (
-      <div key={uId} onClick={() => setSelectedCageUnit(uId)} className={`border-2 rounded-2xl h-24 flex flex-col items-center justify-center cursor-pointer relative shadow-sm hover:border-blue-500 transition-all ${theme.gridBg} ${theme.success}`}>
+      <div 
+        key={uId} 
+        onClick={() => setSelectedCageUnit({ uId, maint: maintRow })} 
+        className={`border-2 rounded-2xl h-24 flex flex-col items-center justify-center cursor-pointer relative shadow-sm hover:border-blue-500 transition-all active:scale-95 ${theme.gridBg} ${isMaintenance ? 'border-rose-500 bg-rose-500/10 animation-pulse' : theme.success}`}
+      >
         <div className="absolute top-2 left-3 text-[10px] font-extrabold tracking-tight opacity-40">U{uId}</div>
-        <div className="text-lg font-black tracking-tight text-blue-500 mt-2">{combinedTotalLive}</div>
-        <div className="text-[8px] uppercase tracking-widest font-bold opacity-40 mt-0.5">Live Spats</div>
+        
+        {isMaintenance ? (
+          <div className="text-center space-y-0.5 px-1">
+            <div className="text-[11px] font-black text-rose-500 tracking-tight">🛠️ REPAIR</div>
+            <div className="text-[8px] font-bold opacity-60 uppercase truncate max-w-[65px] text-rose-400">{maintRow.issue || "Issue"}</div>
+          </div>
+        ) : (
+          <>
+            <div className="text-lg font-black tracking-tight text-blue-500 mt-2">{combinedTotalLive}</div>
+            <div className="text-[8px] uppercase tracking-widest font-bold opacity-40 mt-0.5">Live Spats</div>
+          </>
+        )}
       </div>
     );
   };
@@ -178,26 +205,34 @@ export default function App() {
       )}
 
       {selectedCageUnit && (() => {
-        const p1 = calculateMetrics(selectedCageUnit, '1');
-        const p2 = calculateMetrics(selectedCageUnit, '2');
+        const p1 = calculateMetrics(selectedCageUnit.uId, '1');
+        const p2 = calculateMetrics(selectedCageUnit.uId, '2');
         return (
           <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4" onClick={() => setSelectedCageUnit(null)}>
             <div className={`w-full max-w-sm border-2 p-6 rounded-3xl shadow-2xl ${theme.card}`} onClick={e => e.stopPropagation()}>
-              <h4 className="font-black text-sm uppercase text-blue-500 mb-4 border-b pb-2 tracking-wide">Unit {selectedCageUnit} Profile Summary</h4>
+              <h4 className="font-black text-sm uppercase text-blue-500 mb-2 border-b pb-2 tracking-wide">Unit {selectedCageUnit.uId} Profile Summary</h4>
+              
+              {selectedCageUnit.maint && selectedCageUnit.maint.status === "Maintenance" && (
+                <div className="p-3 border border-rose-500/30 bg-rose-500/5 rounded-xl mb-3 text-xs text-rose-400 font-bold">
+                  ⚠️ Status: Under Maintenance / 정비 요망<br/>
+                  <span className="opacity-70 font-normal">Issue: {selectedCageUnit.maint.issue}</span>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4 text-xs">
                 <div className="space-y-2 bg-black/10 dark:bg-white/5 p-3 rounded-2xl border border-gray-500/10">
                   <span className="font-extrabold text-blue-400 block text-[9px] uppercase tracking-wider">Petak 1</span>
                   <div>Inflow Spats: <b className="float-right">{p1.totalEntered}</b></div>
                   <div>Mortality: <b className="float-right text-red-500">{p1.deadCount}</b></div>
                   <div className="text-emerald-400 font-extrabold border-t pt-1 mt-1">Live Balance: <span className="float-right">{p1.currentLive}</span></div>
-                  <div className="text-[10px] opacity-60">Avg Length: <b className="float-right text-blue-400">{getAverageGrowth(selectedCageUnit, '1')}</b></div>
+                  <div className="text-[10px] opacity-60">Avg Length: <b className="float-right text-blue-400">{getAverageGrowth(selectedCageUnit.uId, '1')}</b></div>
                 </div>
                 <div className="space-y-2 bg-black/10 dark:bg-white/5 p-3 rounded-2xl border border-gray-500/10">
                   <span className="font-extrabold text-blue-400 block text-[9px] uppercase tracking-wider">Petak 2</span>
                   <div>Inflow Spats: <b className="float-right">{p2.totalEntered}</b></div>
                   <div>Mortality: <b className="float-right text-red-500">{p2.deadCount}</b></div>
                   <div className="text-emerald-400 font-extrabold border-t pt-1 mt-1">Live Balance: <span className="float-right">{p2.currentLive}</span></div>
-                  <div className="text-[10px] opacity-60">Avg Length: <b className="float-right text-blue-400">{getAverageGrowth(selectedCageUnit, '2')}</b></div>
+                  <div className="text-[10px] opacity-60">Avg Length: <b className="float-right text-blue-400">{getAverageGrowth(selectedCageUnit.uId, '2')}</b></div>
                 </div>
               </div>
             </div>
@@ -366,7 +401,7 @@ export default function App() {
           </div>
         )}
 
-        {/* TAB 5: DUAL TRANSLATED REFACTORED WORKSPACE GATEWAY */}
+        {/* TAB 5: DUAL TRANSLATED UNPACKED MANAGER OVERVIEW WITH MAINTENANCE SYSTEM */}
         {activeTab === 'manager' && (
           <div className="space-y-6">
             {!isManagerUnlocked ? (
@@ -382,23 +417,14 @@ export default function App() {
               return (
                 <div className="space-y-5">
                   
-                  {/* UNPACKED CONTROL BAR: SUB NAVIGATION TOGGLE SWITCH */}
+                  {/* Sub-Navigation Control Bar to reduce cluster */}
                   <div className="flex border p-1 rounded-xl bg-black/10 dark:bg-white/5 border-gray-500/10">
-                    <button 
-                      onClick={() => setManagerSubTab('dashboard')} 
-                      className={`flex-1 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wide transition-all ${managerSubTab === 'dashboard' ? 'bg-blue-600 text-white shadow' : theme.muted}`}
-                    >
-                      📊 Dashboard / 대시보드 개요
-                    </button>
-                    <button 
-                      onClick={() => setManagerSubTab('batches')} 
-                      className={`flex-1 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wide transition-all ${managerSubTab === 'batches' ? 'bg-blue-600 text-white shadow' : theme.muted}`}
-                    >
-                      📋 Batch Performance / 배치별 실적
-                    </button>
+                    <button onClick={() => setManagerSubTab('dashboard')} className={`flex-1 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wide transition-all ${managerSubTab === 'dashboard' ? 'bg-blue-600 text-white shadow' : theme.muted}`}>📊 Dashboard / 개요</button>
+                    <button onClick={() => setManagerSubTab('batches')} className={`flex-1 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wide transition-all ${managerSubTab === 'batches' ? 'bg-blue-600 text-white shadow' : theme.muted}`}>📋 Batches / 실적</button>
+                    <button onClick={() => setManagerSubTab('maint')} className={`flex-1 py-2 rounded-lg text-[10px] font-extrabold uppercase tracking-wide transition-all ${managerSubTab === 'maint' ? 'bg-blue-600 text-white shadow' : theme.muted}`}>🛠️ Repairs / 정비</button>
                   </div>
 
-                  {/* SUB-VIEW 1: CLEAN METRICS SUMMARY PROFILE */}
+                  {/* SUB-VIEW 1: DASHBOARD CARD PANEL */}
                   {managerSubTab === 'dashboard' && (
                     <div className="space-y-4">
                       <div className={`border p-6 rounded-3xl grid grid-cols-3 gap-4 text-center shadow-sm ${theme.card}`}>
@@ -426,79 +452,88 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* SUB-VIEW 2: ROLLING ARCHIVE HISTORY ACCORDION CONTAINER */}
+                  {/* SUB-VIEW 2: WEEKLY BATCH LOGS ARCHIVE */}
                   {managerSubTab === 'batches' && (
                     <div className="space-y-4">
                       <div className={`border p-5 rounded-3xl flex flex-col gap-2 ${theme.card}`}>
                         <div>
                           <h4 className="text-xs font-black uppercase tracking-wider text-blue-500">Historical Archive Timeline / 과거 이력 타임라인</h4>
-                          <p className="text-[10px] opacity-40 mt-0.5">Select operational 7-day windows / 7일 단위 운영 주차를 선택하세요.</p>
                         </div>
-                        <select 
-                          value={selectedOpsWeek} 
-                          onChange={e => setSelectedOpsWeek(parseInt(e.target.value))} 
-                          className={`w-full h-11 border px-3 rounded-xl text-xs font-bold outline-none bg-neutral-900 ${theme.input} ${theme.selectText}`}
-                        >
+                        <select value={selectedOpsWeek} onChange={e => setSelectedOpsWeek(parseInt(e.target.value))} className={`w-full h-11 border px-3 rounded-xl text-xs font-bold outline-none bg-neutral-900 ${theme.input} ${theme.selectText}`}>
                           {Array.from({ length: maxActiveWeeks }, (_, idx) => {
                             const wNum = idx + 1;
-                            return (
-                              <option key={wNum} value={wNum} className={theme.selectText}>
-                                Week {wNum} ({getWeekRangeString(wNum)}) {wNum === maxActiveWeeks ? '— [ Live Week / 현재 주차 ]' : ''}
-                              </option>
-                            );
+                            return <option key={wNum} value={wNum} className={theme.selectText}>Week {wNum} ({getWeekRangeString(wNum)}) {wNum === maxActiveWeeks ? '— [ Live Week ]' : ''}</option>;
                           })}
                         </select>
                       </div>
 
                       <div className="space-y-3">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest opacity-40 pl-1">
-                          Batch Logs: Ops Week {selectedOpsWeek} / 배치 로그: 운영 {selectedOpsWeek}주차
-                        </h3>
-                        
                         {(() => {
                           const selectedWeeklyBatches = cloudData.transfers?.filter(t => {
                             const batchDate = new Date(t.date);
-                            const diffTime = batchDate.getTime() - EPOCH_START.getTime();
-                            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                            const calculatedWeek = Math.floor(diffDays / 7) + 1;
+                            const calculatedWeek = Math.floor((Math.floor((batchDate.getTime() - EPOCH_START.getTime()) / (1000 * 60 * 60 * 24))) / 7) + 1;
                             return calculatedWeek === selectedOpsWeek;
                           });
 
                           if (!selectedWeeklyBatches || selectedWeeklyBatches.length === 0) {
-                            return (
-                              <div className={`border p-8 rounded-2xl text-center text-xs opacity-40 font-medium ${theme.card}`}>
-                                Tiada rekod / No transfers registered in this operational week bracket.<br/>해당 운영 주차에 등록된 배치 이력이 없습니다.
-                              </div>
-                            );
+                            return <div className={`border p-8 rounded-2xl text-center text-xs opacity-40 font-medium ${theme.card}`}>No records registered in this operational week window.</div>;
                           }
 
                           return selectedWeeklyBatches.map((t, idx) => {
                             const lossPct = t.qty > 0 ? ((t.postDead / t.qty) * 100).toFixed(1) : "0.0";
-                            const isHighLoss = parseFloat(lossPct) >= 5.0;
-
                             return (
-                              <div key={idx} className={`border p-5 rounded-2xl flex justify-between items-center shadow-sm hover:border-blue-500/30 transition-all ${theme.card}`}>
+                              <div key={idx} className={`border p-5 rounded-2xl flex justify-between items-center shadow-sm ${theme.card}`}>
                                 <div className="space-y-1">
                                   <div className="text-xs font-black tracking-tight flex items-center gap-2">
                                     Unit {t.unitId} — Petak {t.petak}
-                                    <span className={`text-[8px] uppercase tracking-wider px-2 py-0.5 font-bold rounded-md border ${isHighLoss ? theme.danger : theme.success}`}>
-                                      {lossPct}% Loss / 손실률
+                                    <span className={`text-[8px] uppercase tracking-wider px-2 py-0.5 font-bold rounded-md border ${parseFloat(lossPct) >= 5.0 ? theme.danger : theme.success}`}>
+                                      {lossPct}% Loss
                                     </span>
                                   </div>
-                                  <div className="text-[11px] opacity-40">
-                                    Date / 이송일: <b className="font-semibold">{t.date}</b> | Size / 규격: <b className="font-semibold">{t.size || "1.15 cm"}</b>
-                                  </div>
+                                  <div className="text-[11px] opacity-40">Date: {t.date} | Size: {t.size || "1.15 cm"}</div>
                                 </div>
-                                <div className="text-right space-y-0.5">
-                                  <div className="text-[10px] uppercase font-bold opacity-30 tracking-wider">Post-Transfer Mortality / 이송 후 폐사</div>
-                                  <div className="text-sm font-black">{t.postDead} <span className="text-[10px] font-bold opacity-40">dead / 미</span></div>
-                                  <div className="text-[10px] font-bold opacity-50">from {t.qty} spats / 총 {t.qty} 미 중</div>
-                                </div>
+                                <div className="text-right text-xs font-black">{t.postDead} dead / 총 {t.qty} 미</div>
                               </div>
                             );
                           });
                         })()}
                       </div>
+                    </div>
+                  )}
+
+                  {/* SUB-VIEW 3: MAINTENANCE FLAG CONTROL PAD */}
+                  {managerSubTab === 'maint' && (
+                    <div className={`border p-6 rounded-3xl ${theme.card}`}>
+                      <h4 className="text-xs font-black uppercase text-amber-500 mb-1 tracking-wider">Cage Maintenance Controls / 상카 정비 제어</h4>
+                      <p className="text-[11px] opacity-40 mb-4">Flag damaged cages to color them red on the maps / 파손된 가두리를 설정하여 가구리 맵에 적색 경보를 표시합니다.</p>
+                      
+                      <div className="grid grid-cols-2 gap-4 mb-3">
+                        <div>
+                          <label className="text-[10px] font-bold uppercase">Unit Number (1-24)</label>
+                          <input type="number" inputMode="numeric" placeholder="Ex: 4" value={maintUnitInput} onChange={e => setMaintUnitInput(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 text-xs outline-none ${theme.input}`} />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold uppercase">Status / 상태</label>
+                          <select value={maintStatusInput} onChange={e => setMaintStatusInput(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 text-xs bg-neutral-900 outline-none ${theme.input} ${theme.selectText}`}>
+                            <option value="Active">🟢 Active /정상 운영</option>
+                            <option value="Maintenance">🔴 Maintenance /정비 중</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <label className="text-[10px] font-bold uppercase">Issue Description / Rincian Masalah / 파손 내용</label>
+                      <input type="text" placeholder="Contoh: Broken Net, Frame Loose" value={maintIssueInput} onChange={e => setMaintIssueInput(e.target.value)} className={`w-full h-11 border px-3 rounded-xl mt-1 text-xs outline-none ${theme.input}`} />
+                      
+                      <button 
+                        onClick={() => {
+                          if(!maintUnitInput) return alert("Sila masukkan No Unit!");
+                          handlePost({ action: "update_maintenance", unitId: parseInt(maintUnitInput), status: maintStatusInput, issue: maintIssueInput });
+                          setMaintUnitInput(''); setMaintIssueInput('');
+                        }} 
+                        className="w-full h-11 bg-amber-500 text-black font-black rounded-xl text-xs mt-4 shadow"
+                      >
+                        Update Farm Layout Status / 상태 변경 사항 저장
+                      </button>
                     </div>
                   )}
 
