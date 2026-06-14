@@ -158,15 +158,27 @@ export default function App() {
     return (sum / localSampleList.length).toFixed(2);
   };
 
+  // Helper logic function to get cumulative transfers for a selected operations week bracket
+  const getWeeklyTransferTotalCount = (weekNum) => {
+    let sum = 0;
+    cloudData.transfers?.forEach(t => {
+      const batchDate = new Date(t.date);
+      const diffDays = Math.floor((batchDate.getTime() - EPOCH_START.getTime()) / (1000 * 60 * 60 * 24));
+      const calculatedWeek = Math.floor(diffDays / 7) + 1;
+      if (calculatedWeek === weekNum) {
+        sum += parseInt(t.qty || 0);
+      }
+    });
+    return sum;
+  };
+
   const renderCageUnit = (uId) => {
     const m1 = calculateMetrics(uId, '1');
     const m2 = calculateMetrics(uId, '2');
     const combinedTotalLive = m1.currentLive + m2.currentLive;
 
-    // Evaluate core database multi-status flags
     const dbMaintRow = cloudData.maintenance?.find(m => parseInt(m.unitId) === parseInt(uId));
     
-    // Default fallback: Automatically place Units 13-24 under construction if not explicitly overridden by sheet records
     let currentStatus = (uId >= 13 && uId <= 24) ? "Construction" : "Active";
     let currentIssue = (uId >= 13 && uId <= 24) ? "Tapak Belum Siap" : "";
 
@@ -179,7 +191,6 @@ export default function App() {
       return <div className="h-24 opacity-5 border border-dashed rounded-xl"></div>;
     }
 
-    // Dynamic component style block configuration mappings
     let cardStyle = theme.success;
     let labelText = "Live Spats";
     let innerValueDisplay = <div className="text-lg font-black tracking-tight text-blue-500 mt-2">{combinedTotalLive}</div>;
@@ -472,6 +483,7 @@ export default function App() {
                     </div>
                   )}
 
+                  {/* SUB-VIEW 2: WEEKLY BATCH LOGS ARCHIVE WITH CUMULATIVE COUNTER TILE */}
                   {managerSubTab === 'batches' && (
                     <div className="space-y-4">
                       <div className={`border p-5 rounded-3xl flex flex-col gap-2 ${theme.card}`}>
@@ -486,7 +498,21 @@ export default function App() {
                         </select>
                       </div>
 
+                      {/* NEW LIVE CUMULATIVE INCREASING TRANSFER INFLOW COUNTER CARD BOX */}
+                      <div className={`border p-5 rounded-2xl bg-blue-600/5 border-blue-500/20 text-center space-y-1 ${theme.card}`}>
+                        <span className="text-[10px] uppercase font-black tracking-widest opacity-50 block">
+                          Week {selectedOpsWeek} Cumulative Inflow Counter / {selectedOpsWeek}주차 누적 입식량 카운터
+                        </span>
+                        <div className="text-2xl font-black text-blue-500 tracking-tight">
+                          🚀 {getWeeklyTransferTotalCount(selectedOpsWeek).toLocaleString()} <span className="text-xs font-bold opacity-60 text-white dark:text-white">Spats / 미</span>
+                        </div>
+                      </div>
+
                       <div className="space-y-3">
+                        <h3 className="text-[10px] font-black uppercase tracking-widest opacity-40 pl-1">
+                          Batch Logs: Ops Week {selectedOpsWeek} / 배치 로그: 운영 {selectedOpsWeek}주차
+                        </h3>
+                        
                         {(() => {
                           const selectedWeeklyBatches = cloudData.transfers?.filter(t => {
                             const batchDate = new Date(t.date);
